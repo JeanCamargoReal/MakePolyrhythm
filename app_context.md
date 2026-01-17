@@ -6,6 +6,16 @@ Ele serve como fonte de verdade para LLMs entenderem **o que** deve ser constru�
 ## 1. Visão Geral do Produto
 O MakePolyrhythm é um aplicativo focado em pessoas com TDAH e autismo nível 1, onde possibilita o usuário montar animações de batidas, notas musicais, sons de sintetizadores e cores vibrantes para ajudar na terapia cognitiva e estimular a concentração.
 
+Exemplos de animações com sons que o usuário pode fazer:
+- https://www.youtube.com/shorts/rfipj4QslbU
+- https://www.youtube.com/shorts/0QZkFPVXDxs
+- https://www.youtube.com/shorts/ZLc_WtgX8Zw
+- https://www.youtube.com/shorts/OsAlMi_uzvw
+- https://www.youtube.com/watch?v=Lxs4cvSximc
+- https://www.youtube.com/shorts/OTm_vunD0JY
+- https://www.youtube.com/shorts/Nz3DMpAelTE
+
+
 ## 2. Funcionalidades Principais (Core Features)
 - **Editor de Animação em Tempo Real**: Permite montar e configurar animações enquanto elas rodam.
 - **Elementos Personalizáveis**:
