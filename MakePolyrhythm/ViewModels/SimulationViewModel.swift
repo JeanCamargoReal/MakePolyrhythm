@@ -2,19 +2,36 @@ import SwiftUI
 import SpriteKit
 import Observation
 
+/// ViewModel responsável pela lógica de apresentação e controle da simulação física.
+///
+/// Atua como uma ponte entre a interface do usuário (SwiftUI) e a cena do SpriteKit (`PolyrhythmScene`).
+/// Suas principais responsabilidades incluem:
+/// - Gerenciar a instância da cena.
+/// - Controlar o estado global da simulação (pausa/play).
+/// - Receber e processar gestos da UI (escala e rotação) e aplicá-los aos objetos selecionados na cena.
+/// - Expor comandos de ação (adicionar bola/obstáculo, limpar cena) para a View.
 @Observable
 class SimulationViewModel {
+    
+    /// A cena SpriteKit principal onde a simulação ocorre.
     var scene: PolyrhythmScene
+    
+    /// Estado de pausa da simulação. Ao ser alterado, propaga o estado para a cena.
     var isPaused: Bool = false {
         didSet {
             scene.isPausedSimulation = isPaused
         }
     }
     
-    // Estado interno para gestos
+    // MARK: - Estado Interno de Gestos
+    
+    /// Armazena o último fator de escala aplicado durante um gesto de pinça, para cálculo incremental.
     private var lastScale: CGFloat = 1.0
+    
+    /// Armazena o último ângulo de rotação aplicado durante um gesto, para cálculo incremental.
     private var lastRotation: Angle = .zero
     
+    /// Inicializa o ViewModel e configura a cena com suas dependências.
     @MainActor
     init() {
         // Inicializa a cena com injeção de dependência do serviço de áudio

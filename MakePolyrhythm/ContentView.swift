@@ -1,9 +1,22 @@
 import SwiftUI
 import SpriteKit
 
+/// Interface de usuário principal da aplicação MakePolyrhythm.
+///
+/// Esta View é responsável por integrar a cena do SpriteKit (`PolyrhythmScene`) com a interface nativa do SwiftUI.
+/// Ela gerencia:
+/// - A renderização da `SpriteView`.
+/// - A camada de controles flutuantes (Dock) para adicionar elementos e controlar a simulação.
+/// - A detecção de gestos de magnificação (pinça) e rotação para manipulação direta de objetos na cena.
 struct ContentView: View {
+    
+    /// ViewModel que gerencia o estado da simulação e a comunicação com a cena SpriteKit.
     @State private var viewModel = SimulationViewModel()
+    
+    /// Controla a visibilidade dos controles de sobreposição (Dock).
     @State private var showControls = false
+    
+    /// Timer utilizado para ocultar automaticamente os controles após um período de inatividade.
     @State private var hideTimer: Timer?
     
     var body: some View {

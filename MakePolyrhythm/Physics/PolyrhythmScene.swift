@@ -3,20 +3,27 @@ import SwiftUI
 
 // MARK: - Constants
 
+/// Constantes globais de configuração do jogo, física e interface.
 enum GameConstants {
+    
+    /// Configurações de Física
     enum Physics {
         static let ballCategory: UInt32 = 0b1
         static let wallCategory: UInt32 = 0b10
         static let ballRadius: CGFloat = 20.0
+        /// Restituição 1.0 garante colisões perfeitamente elásticas (sem perda de energia).
         static let defaultRestitution: CGFloat = 1.0
         static let defaultFriction: CGFloat = 0.0
     }
     
+    /// Configurações de Áudio
     enum Audio {
+        /// Escala Pentatônica para geração de melodias harmoniosas.
         static let pentatonicScale: [Float] = [261.63, 293.66, 329.63, 392.00, 440.00, 523.25]
         static let defaultNoteDuration: Double = 0.1
     }
     
+    /// Configurações de Interface e Limites
     enum UI {
         static let obstacleName = "obstacle"
         // Margens de segurança para impedir objetos sob Dynamic Island ou Home Indicator
@@ -29,6 +36,12 @@ enum GameConstants {
 
 // MARK: - Scene
 
+/// Cena principal do SpriteKit responsável pela simulação polirrítmica.
+///
+/// Implementa a lógica de:
+/// - **Física**: Ambiente de gravidade zero com colisões elásticas.
+/// - **Interatividade**: Seleção, arrasto (Drag), redimensionamento e rotação de objetos.
+/// - **Áudio**: Disparo de sons sintetizados baseados em eventos de colisão (Bola x Parede, Bola x Bola).
 class PolyrhythmScene: SKScene {
     
     // Dependências (Injeção)
@@ -37,6 +50,7 @@ class PolyrhythmScene: SKScene {
     // Estado interno
     private var selectedNode: SKNode?
     
+    /// Controla o estado de pausa da simulação física.
     var isPausedSimulation: Bool = false {
         didSet {
             self.isPaused = isPausedSimulation
@@ -45,6 +59,10 @@ class PolyrhythmScene: SKScene {
 
     // MARK: - Inicialização
     
+    /// Inicializa a cena com um serviço de áudio injetado.
+    /// - Parameters:
+    ///   - audioService: Serviço responsável pela síntese sonora.
+    ///   - size: Dimensões iniciais da cena.
     init(audioService: AudioServiceProtocol, size: CGSize) {
         self.audioService = audioService
         super.init(size: size)
@@ -56,6 +74,9 @@ class PolyrhythmScene: SKScene {
     
     // MARK: - Métodos Públicos de Edição (Gestos)
     
+    /// Aplica uma escala incremental ao nó selecionado.
+    /// Utilizado para responder a gestos de pinça (magnification).
+    /// - Parameter factor: Fator de escala a ser multiplicado pela escala atual (ex: 1.0 = sem mudança, 1.1 = +10%).
     func scaleSelectedNode(by factor: CGFloat) {
         guard let node = selectedNode else { return }
         // Aplicar escala incremental
@@ -63,6 +84,8 @@ class PolyrhythmScene: SKScene {
         node.yScale *= factor
     }
     
+    /// Aplica uma rotação incremental ao nó selecionado.
+    /// - Parameter radians: Ângulo em radianos a ser subtraído da rotação atual (ajustado para sentido do gesto).
     func rotateSelectedNode(by radians: CGFloat) {
         guard let node = selectedNode else { return }
         node.zRotation -= radians // Subtrair para acompanhar o sentido do gesto (teste prático: SwiftUI rotation é clockwise positivo? SpriteKit é counter-clockwise. Gesto: clockwise = positivo. SK: CCW = positivo. Então inverter o sinal)
@@ -87,6 +110,10 @@ class PolyrhythmScene: SKScene {
         backgroundColor = .black
     }
     
+    /// Configura as bordas físicas da cena.
+    /// Atualmente define apenas o limite superior, permitindo que objetos saiam pelas laterais/fundo se necessário,
+    /// ou pode ser configurado para fechar o loop dependendo da implementação de 'setupBorders' ativa.
+    /// (Nesta versão, o código reflete um loop completo ajustado pelas margens).
     private func setupBorders() {
         let playableRect = CGRect(
             x: frame.minX,
@@ -178,6 +205,9 @@ class PolyrhythmScene: SKScene {
     
     // MARK: - Touch Handling
     
+    /// Detecta o início de um toque para selecionar obstáculos.
+    /// - Aplica feedback visual (escala/fade) ao selecionar.
+    /// - Para a rotação angular física para facilitar a manipulação.
     override func touchesBegan(_ touches: Set<UITouch>, with event: UIEvent?) {
         guard let touch = touches.first else { return }
         let location = touch.location(in: self)
@@ -208,6 +238,8 @@ class PolyrhythmScene: SKScene {
         }
     }
     
+    /// Manipula o arrasto de objetos selecionados.
+    /// - Restringe o movimento dentro das margens seguras definidas em `GameConstants.UI` para evitar que objetos saiam da tela.
     override func touchesMoved(_ touches: Set<UITouch>, with event: UIEvent?) {
         guard let touch = touches.first, let node = selectedNode else { return }
         let location = touch.location(in: self)
@@ -232,6 +264,8 @@ class PolyrhythmScene: SKScene {
         node.position = CGPoint(x: clampedX, y: clampedY)
     }
     
+    /// Finaliza a interação de toque.
+    /// Nota: A seleção é mantida (não é limpa em `touchesEnded`) para permitir a continuação da edição via gestos (pinça/rotação) sem precisar tocar novamente.
     override func touchesEnded(_ touches: Set<UITouch>, with event: UIEvent?) {
         // Não removemos a seleção ao soltar, para permitir edição via UI.
         // Apenas paramos o arrasto (que é implícito pelo fim do movimento).
