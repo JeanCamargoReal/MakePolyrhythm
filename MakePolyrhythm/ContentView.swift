@@ -11,6 +11,24 @@ struct ContentView: View {
             // Fundo / Cena
             SpriteView(scene: viewModel.scene)
                 .ignoresSafeArea()
+                .gesture(
+                    SimultaneousGesture(
+                        MagnificationGesture()
+                            .onChanged { value in
+                                viewModel.handleScaleChange(scale: value)
+                            }
+                            .onEnded { _ in
+                                viewModel.handleScaleEnd()
+                            },
+                        RotationGesture()
+                            .onChanged { value in
+                                viewModel.handleRotationChange(angle: value)
+                            }
+                            .onEnded { _ in
+                                viewModel.handleRotationEnd()
+                            }
+                    )
+                )
             
             // Área Sensível (Sensor de Proximidade/Toque)
             // Fica sempre ativa na parte inferior para "chamar" os controles
@@ -27,7 +45,7 @@ struct ContentView: View {
             
             // Overlay de Controles
             if showControls {
-                // Floating Glass Dock
+                // Floating Glass Dock (Controles Principais)
                 HStack(spacing: 20) {
                     
                     // Grupo: Criação

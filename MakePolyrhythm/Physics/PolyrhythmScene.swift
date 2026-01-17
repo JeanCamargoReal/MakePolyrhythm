@@ -54,6 +54,20 @@ class PolyrhythmScene: SKScene {
         fatalError("init(coder:) has not been implemented. Use init(audioService:size:) instead.")
     }
     
+    // MARK: - Métodos Públicos de Edição (Gestos)
+    
+    func scaleSelectedNode(by factor: CGFloat) {
+        guard let node = selectedNode else { return }
+        // Aplicar escala incremental
+        node.xScale *= factor
+        node.yScale *= factor
+    }
+    
+    func rotateSelectedNode(by radians: CGFloat) {
+        guard let node = selectedNode else { return }
+        node.zRotation -= radians // Subtrair para acompanhar o sentido do gesto (teste prático: SwiftUI rotation é clockwise positivo? SpriteKit é counter-clockwise. Gesto: clockwise = positivo. SK: CCW = positivo. Então inverter o sinal)
+    }
+    
     // MARK: - Ciclo de Vida
     
     override func didMove(to view: SKView) {
@@ -169,14 +183,28 @@ class PolyrhythmScene: SKScene {
         let location = touch.location(in: self)
         let touchedNodes = nodes(at: location)
         
+        // Se tocou em um obstáculo
         if let obstacleNode = touchedNodes.first(where: { $0.name == GameConstants.UI.obstacleName }) {
+            // Se já havia um selecionado diferente, restaure o visual dele (opcional, simplificado aqui)
+            // Para este protótipo, assumimos que o usuário seleciona um novo.
+            
             selectedNode = obstacleNode
             
-            let scaleUp = SKAction.scale(to: 1.2, duration: 0.1)
+            // Feedback visual de seleção
+            let scaleUp = SKAction.scale(to: 1.1, duration: 0.1) // Escala leve para indicar seleção
             let fade = SKAction.fadeAlpha(to: 0.8, duration: 0.1)
             obstacleNode.run(SKAction.group([scaleUp, fade]))
             
             obstacleNode.physicsBody?.angularVelocity = 0
+            
+        } else {
+            // Tocou no fundo -> Deselecionar
+            if let prevNode = selectedNode {
+                let scaleDown = SKAction.scale(to: 1.0, duration: 0.1)
+                let fadeBack = SKAction.fadeAlpha(to: 1.0, duration: 0.1)
+                prevNode.run(SKAction.group([scaleDown, fadeBack]))
+            }
+            selectedNode = nil
         }
     }
     
@@ -205,13 +233,10 @@ class PolyrhythmScene: SKScene {
     }
     
     override func touchesEnded(_ touches: Set<UITouch>, with event: UIEvent?) {
-        guard let node = selectedNode else { return }
-        
-        let scaleDown = SKAction.scale(to: 1.0, duration: 0.1)
-        let fadeBack = SKAction.fadeAlpha(to: 1.0, duration: 0.1)
-        node.run(SKAction.group([scaleDown, fadeBack]))
-        
-        selectedNode = nil
+        // Não removemos a seleção ao soltar, para permitir edição via UI.
+        // Apenas paramos o arrasto (que é implícito pelo fim do movimento).
+        // Poderíamos restaurar a escala/alpha aqui se quiséssemos apenas efeito de "click",
+        // mas como é estado de "seleção", manter visualmente distinto ajuda.
     }
     
     override func touchesCancelled(_ touches: Set<UITouch>, with event: UIEvent?) {
