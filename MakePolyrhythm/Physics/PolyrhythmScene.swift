@@ -19,6 +19,11 @@ enum GameConstants {
     
     enum UI {
         static let obstacleName = "obstacle"
+        // Margens de segurança para impedir objetos sob Dynamic Island ou Home Indicator
+        static let topSafeArea: CGFloat = 50.0
+        static let bottomSafeArea: CGFloat = 150.0 // Maior por causa dos controles flutuantes
+        static let horizontalMargin: CGFloat = 20.0
+        static let verticalDragMargin: CGFloat = 50.0 // Margem vertical para o arrasto de objetos
     }
 }
 
@@ -69,7 +74,14 @@ class PolyrhythmScene: SKScene {
     }
     
     private func setupBorders() {
-        let borderBody = SKPhysicsBody(edgeLoopFrom: self.frame)
+        let playableRect = CGRect(
+            x: frame.minX,
+            y: frame.minY,
+            width: frame.width,
+            height: frame.height - GameConstants.UI.topSafeArea
+        )
+        
+        let borderBody = SKPhysicsBody(edgeLoopFrom: playableRect)
         borderBody.friction = GameConstants.Physics.defaultFriction
         borderBody.restitution = GameConstants.Physics.defaultRestitution
         borderBody.linearDamping = 0
@@ -92,8 +104,8 @@ class PolyrhythmScene: SKScene {
         let body = SKPhysicsBody(circleOfRadius: GameConstants.Physics.ballRadius)
         body.isDynamic = true
         body.categoryBitMask = GameConstants.Physics.ballCategory
-        body.contactTestBitMask = GameConstants.Physics.wallCategory
-        body.collisionBitMask = GameConstants.Physics.wallCategory
+        body.contactTestBitMask = GameConstants.Physics.wallCategory | GameConstants.Physics.ballCategory
+        body.collisionBitMask = GameConstants.Physics.wallCategory | GameConstants.Physics.ballCategory
         body.usesPreciseCollisionDetection = true
         
         body.friction = GameConstants.Physics.defaultFriction
@@ -119,17 +131,25 @@ class PolyrhythmScene: SKScene {
         obstacle.fillColor = .orange
         obstacle.strokeColor = .white
         
-        let margin: CGFloat = 100
-        let randomX = CGFloat.random(in: (frame.minX + margin)...(frame.maxX - margin))
-        let randomY = CGFloat.random(in: (frame.minY + margin)...(frame.maxY - margin))
-        obstacle.position = CGPoint(x: randomX, y: randomY)
+        // Posição Aleatória (respeitando margens seguras)
+        // Usamos as constantes definidas para garantir que não nasça em local inacessível
+        let minX = frame.minX + GameConstants.UI.horizontalMargin + (width/2)
+        let maxX = frame.maxX - GameConstants.UI.horizontalMargin - (width/2)
+        let minY = frame.minY + GameConstants.UI.bottomSafeArea + (height/2)
+        let maxY = frame.maxY - GameConstants.UI.topSafeArea - (height/2)
+        
+        // Verificação de segurança caso a tela seja muito pequena
+        let safeX = minX < maxX ? CGFloat.random(in: minX...maxX) : frame.midX
+        let safeY = minY < maxY ? CGFloat.random(in: minY...maxY) : frame.midY
+        
+        obstacle.position = CGPoint(x: safeX, y: safeY)
         obstacle.zRotation = CGFloat.random(in: 0...CGFloat.pi)
         
         let body = SKPhysicsBody(rectangleOf: size)
         body.isDynamic = false
         body.categoryBitMask = GameConstants.Physics.wallCategory
         body.contactTestBitMask = GameConstants.Physics.ballCategory
-        body.collisionBitMask = GameConstants.Physics.ballCategory
+        body.collisionBitMask = GameConstants.Physics.ballCategory | GameConstants.Physics.wallCategory
         
         body.friction = GameConstants.Physics.defaultFriction
         body.restitution = GameConstants.Physics.defaultRestitution
@@ -162,7 +182,26 @@ class PolyrhythmScene: SKScene {
     
     override func touchesMoved(_ touches: Set<UITouch>, with event: UIEvent?) {
         guard let touch = touches.first, let node = selectedNode else { return }
-        node.position = touch.location(in: self)
+        let location = touch.location(in: self)
+        
+        // Usar margens fixas para permitir que o objeto chegue mais perto das bordas,
+        // independentemente do seu tamanho (pode haver um leve corte visual, o que é desejado)
+        let hMargin = GameConstants.UI.horizontalMargin
+        let vMargin = GameConstants.UI.verticalDragMargin
+        
+        // Definir limites da tela baseados no CENTRO do objeto
+        // As margens aqui evitam que o centro do objeto vá além, permitindo que parte do objeto
+        // possa tocar/atravessar um pouco a borda, se for grande.
+        let minX = frame.minX + hMargin
+        let maxX = frame.maxX - hMargin
+        let minY = frame.minY + vMargin
+        let maxY = frame.maxY - vMargin
+        
+        // Restringir posição (Clamp)
+        let clampedX = min(max(location.x, minX), maxX)
+        let clampedY = min(max(location.y, minY), maxY)
+        
+        node.position = CGPoint(x: clampedX, y: clampedY)
     }
     
     override func touchesEnded(_ touches: Set<UITouch>, with event: UIEvent?) {
@@ -198,6 +237,12 @@ extension PolyrhythmScene: SKPhysicsContactDelegate {
         // Colisão Bola (1) x Parede (2)
         if (firstBody.categoryBitMask & GameConstants.Physics.ballCategory != 0) &&
             (secondBody.categoryBitMask & GameConstants.Physics.wallCategory != 0) {
+            
+            playRandomNote()
+        }
+        // Colisão Bola (1) x Bola (1)
+        else if (firstBody.categoryBitMask & GameConstants.Physics.ballCategory != 0) &&
+                (secondBody.categoryBitMask & GameConstants.Physics.ballCategory != 0) {
             
             playRandomNote()
         }
