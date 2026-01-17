@@ -28,6 +28,7 @@ Este arquivo define as diretrizes e padrões que devem ser seguidos durante o de
 ## 4. Arquitetura
 - **Padrão**: Adote **MVVM (Model-View-ViewModel)** como padrão, garantindo separação clara entre lógica de UI e regras de negócio.
 - **SOLID**: Aplique os princípios SOLID rigorosamente.
+- **Clean Architecture**: Adote a Clean Architecture como padrão, garantindo separação clara entre lógica de UI e regras de negócio.
 - **Injeção de Dependência**: Injete dependências (protocolos) nos inicializadores para facilitar testes.
 
 ## 5. Testes

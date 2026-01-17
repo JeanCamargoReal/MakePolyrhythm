@@ -2,7 +2,7 @@ import AVFoundation
 
 /// Gerencia a síntese de áudio para o Polyrhythm App.
 /// Utiliza AVAudioEngine para baixa latência.
-final class SynthEngine {
+final class SynthEngine: AudioServiceProtocol {
     static let shared = SynthEngine()
     
     private let engine = AVAudioEngine()

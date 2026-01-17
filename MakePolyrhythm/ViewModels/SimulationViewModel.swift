@@ -13,9 +13,10 @@ class SimulationViewModel {
     
     @MainActor
     init() {
-        // Inicializa a cena com um tamanho padrão (será redimensionada pelo SpriteView)
-        // Usamos .resizeFill para que a cena ocupe todo o espaço disponível
-        let newScene = PolyrhythmScene()
+        // Inicializa a cena com injeção de dependência do serviço de áudio
+        // Definimos um tamanho padrão inicial, que será ajustado pelo .resizeFill no SwiftUI
+        let audioService = SynthEngine.shared
+        let newScene = PolyrhythmScene(audioService: audioService, size: CGSize(width: 300, height: 600))
         newScene.scaleMode = .resizeFill
         self.scene = newScene
     }
