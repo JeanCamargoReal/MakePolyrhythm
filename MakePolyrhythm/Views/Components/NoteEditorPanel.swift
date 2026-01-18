@@ -2,8 +2,7 @@ import SwiftUI
 
 /// Painel contextual para edição da nota musical de um obstáculo selecionado.
 ///
-/// Exibe um controle do tipo `Stepper` que permite ao usuário ciclar entre as notas disponíveis na escala harmônica do jogo.
-/// Aparece apenas quando um objeto editável está selecionado na cena.
+/// Exibe um controle do tipo `Slider` que permite ajuste rápido e intuitivo da altura (pitch) do som.
 struct NoteEditorPanel: View {
     
     /// Binding para o índice da nota selecionada no ViewModel.
@@ -13,34 +12,68 @@ struct NoteEditorPanel: View {
     var onInteraction: () -> Void = {}
     
     var body: some View {
-        VStack(spacing: 8) {
-            Text("Configurar Nota")
-                .font(.caption2)
-                .textCase(.uppercase)
-                .foregroundStyle(.secondary)
-                .frame(maxWidth: .infinity, alignment: .leading)
-            
+        VStack(spacing: 12) {
+            // Cabeçalho
             HStack {
-                Image(systemName: "music.note")
-                    .foregroundStyle(.cyan)
+                Text("AFINAÇÃO")
+                    .font(.caption2)
+                    .fontWeight(.bold)
+                    .foregroundStyle(.secondary)
                 
-                Stepper(value: $selectedNoteIndex, in: 0...13) {
-                    Text("Tom \(selectedNoteIndex + 1)")
-                        .font(.headline)
-                        .monospacedDigit()
-                }
-                .onChange(of: selectedNoteIndex) { _ in
-                    onInteraction()
-                }
+                Spacer()
+                
+                // Valor atual
+                Text("Tom \(selectedNoteIndex + 1)")
+                    .font(.caption)
+                    .fontWeight(.semibold)
+                    .foregroundStyle(.cyan)
+                    .padding(.horizontal, 8)
+                    .padding(.vertical, 2)
+                    .background(.cyan.opacity(0.2), in: Capsule())
+            }
+            
+            // Controle Deslizante (Slider)
+            HStack(spacing: 12) {
+                // Ícone Grave
+                Image(systemName: "music.note")
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+                
+                // Slider com feedback tátil
+                Slider(
+                    value: Binding(
+                        get: { Double(selectedNoteIndex) },
+                        set: { newValue in
+                            let newIndex = Int(newValue)
+                            if newIndex != selectedNoteIndex {
+                                // Feedback tátil ao mudar de "degrau"
+                                let generator = UIImpactFeedbackGenerator(style: .light)
+                                generator.impactOccurred()
+                                selectedNoteIndex = newIndex
+                                onInteraction()
+                            }
+                        }
+                    ),
+                    in: 0...13,
+                    step: 1
+                )
+                .tint(.cyan)
+                
+                // Ícone Agudo
+                Image(systemName: "music.quarternote.3")
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
             }
         }
-        .padding()
-        .background(.ultraThinMaterial, in: RoundedRectangle(cornerRadius: 16))
+        .padding(16)
+        .background(.ultraThinMaterial, in: RoundedRectangle(cornerRadius: 20))
         .overlay(
-            RoundedRectangle(cornerRadius: 16)
+            RoundedRectangle(cornerRadius: 20)
                 .stroke(.white.opacity(0.2), lineWidth: 0.5)
         )
-        .padding(.horizontal, 30)
+        // Sombra suave para destacar do fundo
+        .shadow(color: .black.opacity(0.15), radius: 10, x: 0, y: 5)
+        .padding(.horizontal, 24) // Margem lateral ajustada
         .transition(.move(edge: .bottom).combined(with: .opacity))
         .onTapGesture {
             onInteraction()
@@ -51,6 +84,6 @@ struct NoteEditorPanel: View {
 #Preview {
     ZStack {
         Color.black.ignoresSafeArea()
-        NoteEditorPanel(selectedNoteIndex: .constant(0))
+        NoteEditorPanel(selectedNoteIndex: .constant(5))
     }
 }

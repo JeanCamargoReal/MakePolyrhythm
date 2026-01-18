@@ -20,10 +20,10 @@ struct GlassyButton: View {
     var body: some View {
         Button(action: action) {
             Image(systemName: icon)
-                .font(.title3)
+                .font(.title2) // Aumentado para proporção
                 .fontWeight(.medium)
                 .foregroundStyle(color)
-                .frame(width: 38, height: 38)
+                .frame(width: 44, height: 44) // Aumentado para 44pt (Padrão Apple HIG)
                 .contentShape(Circle())
         }
         .accessibilityLabel(label)

@@ -51,11 +51,11 @@ struct FloatingControlsDock: View {
                         Label("Losango", systemImage: "diamond.fill")
                     }
                 } label: {
-                    Image(systemName: "plus.square.fill.on.square.fill")
-                        .font(.title3)
+                    Image(systemName: "square.on.circle") // Ícone mais limpo para "Formas/Objetos"
+                        .font(.title2)
                         .fontWeight(.medium)
                         .foregroundStyle(.primary)
-                        .frame(width: 38, height: 38)
+                        .frame(width: 44, height: 44) // Aumentado para 44pt
                         .contentShape(Circle())
                 }
             }
