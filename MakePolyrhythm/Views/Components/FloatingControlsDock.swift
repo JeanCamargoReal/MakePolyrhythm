@@ -99,3 +99,12 @@ struct FloatingControlsDock: View {
         onInteraction()
     }
 }
+
+#Preview {
+    ZStack {
+        Color.black.ignoresSafeArea()
+        FloatingControlsDock(viewModel: SimulationViewModel()) {
+            print("Interaction detected")
+        }
+    }
+}

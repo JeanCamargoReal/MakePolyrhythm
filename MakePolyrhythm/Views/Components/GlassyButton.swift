@@ -44,3 +44,12 @@ struct BouncyButtonStyle: ButtonStyle {
             )
     }
 }
+
+#Preview {
+    ZStack {
+        Color.black.ignoresSafeArea()
+        GlassyButton(icon: "star.fill", label: "Example Button") {
+            print("Button tapped")
+        }
+    }
+}

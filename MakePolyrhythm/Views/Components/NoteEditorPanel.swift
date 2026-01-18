@@ -38,3 +38,10 @@ struct NoteEditorPanel: View {
         .transition(.move(edge: .bottom).combined(with: .opacity))
     }
 }
+
+#Preview {
+    ZStack {
+        Color.black.ignoresSafeArea()
+        NoteEditorPanel(selectedNoteIndex: .constant(0))
+    }
+}
