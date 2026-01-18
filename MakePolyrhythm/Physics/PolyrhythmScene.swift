@@ -157,16 +157,16 @@ class PolyrhythmScene: SKScene {
 
     // MARK: - Gestão de Entidades
     
-    /// Adiciona uma nova bola à cena com textura de gradiente radial e física dinâmica.
+    /// Adiciona uma nova bola à cena com cor sólida e física dinâmica.
     func addBall() {
         let ball = SKShapeNode(circleOfRadius: GameConstants.Physics.ballRadius)
         ball.name = GameConstants.UI.ballName
         
-        // Estilo Vibrante 2D: Gera textura em tempo real
-        let texture = createRadialGradientTexture(color: .cyan, radius: GameConstants.Physics.ballRadius)
-        ball.fillTexture = texture
-        ball.fillColor = .white // Base branca para não tingir a textura
-        ball.strokeColor = .clear
+        // Estilo Sólido Vibrante
+        ball.fillTexture = nil
+        ball.fillColor = .cyan
+        ball.strokeColor = .white
+        ball.lineWidth = 2.0
         ball.blendMode = .alpha
         
         ball.position = CGPoint(x: frame.midX, y: frame.midY)
@@ -186,7 +186,7 @@ class PolyrhythmScene: SKScene {
         ball.physicsBody = body
         addChild(ball)
         
-        // Adiciona rastro de partículas
+        // Adicionar rastro
         let trail = createTrail(color: .cyan)
         trail.targetNode = self
         ball.addChild(trail)
@@ -233,116 +233,6 @@ class PolyrhythmScene: SKScene {
             context.cgContext.setFillColor(UIColor.white.cgColor)
             context.cgContext.fillEllipse(in: CGRect(origin: .zero, size: size))
         }
-        return SKTexture(image: image)
-    }
-    
-    /// Gera uma textura de gradiente radial vibrante para bolas (Estilo 2D Moderno).
-    private func createRadialGradientTexture(color: UIColor, radius: CGFloat) -> SKTexture {
-        let size = CGSize(width: radius * 2, height: radius * 2)
-        let renderer = UIGraphicsImageRenderer(size: size)
-        
-        let image = renderer.image { context in
-            let ctx = context.cgContext
-            let center = CGPoint(x: radius, y: radius)
-            
-            // Gradiente Radial: Centro (Branco/Cor Clara) -> Borda (Cor Base Saturada)
-            let colors = [UIColor.white.withAlphaComponent(0.9).cgColor, color.cgColor] as CFArray
-            let locations: [CGFloat] = [0.0, 1.0]
-            
-            if let gradient = CGGradient(colorsSpace: CGColorSpaceCreateDeviceRGB(), colors: colors, locations: locations) {
-                ctx.drawRadialGradient(gradient, startCenter: center, startRadius: 0, endCenter: center, endRadius: radius, options: [])
-            }
-            
-            // Borda fina para definição
-            ctx.setStrokeColor(UIColor.white.withAlphaComponent(0.8).cgColor)
-            ctx.setLineWidth(2.0)
-            ctx.strokeEllipse(in: CGRect(origin: .zero, size: size).insetBy(dx: 1, dy: 1))
-        }
-        
-        return SKTexture(image: image)
-    }
-    
-    /// Gera uma textura de gradiente linear para obstáculos (Retângulo/Hexágono).
-    private func createLinearGradientTexture(path: CGPath, color: UIColor, size: CGSize) -> SKTexture {
-        let renderer = UIGraphicsImageRenderer(size: size)
-        
-        let image = renderer.image { context in
-            let ctx = context.cgContext
-            let pathBounds = path.boundingBox
-            
-            ctx.translateBy(x: -pathBounds.minX, y: -pathBounds.minY)
-            
-            // Clipar pelo path
-            ctx.addPath(path)
-            ctx.clip()
-            
-            // Gradiente Linear Diagonal
-            let colors = [UIColor.white.withAlphaComponent(0.4).cgColor, color.cgColor] as CFArray
-            
-            if let gradient = CGGradient(colorsSpace: CGColorSpaceCreateDeviceRGB(), colors: colors, locations: [0.0, 1.0]) {
-                let start = CGPoint(x: pathBounds.minX, y: pathBounds.minY)
-                let end = CGPoint(x: pathBounds.maxX, y: pathBounds.maxY)
-                ctx.drawLinearGradient(gradient, start: start, end: end, options: [])
-            }
-        }
-        
-        return SKTexture(image: image)
-    }
-    
-    /// Gera uma textura de gradiente vertical para triângulos (Topo Claro -> Base Escura).
-    private func createVerticalGradientTexture(path: CGPath, color: UIColor, size: CGSize) -> SKTexture {
-        let renderer = UIGraphicsImageRenderer(size: size)
-        
-        let image = renderer.image { context in
-            let ctx = context.cgContext
-            let pathBounds = path.boundingBox
-            
-            ctx.translateBy(x: -pathBounds.minX, y: -pathBounds.minY)
-            
-            ctx.addPath(path)
-            ctx.clip()
-            
-            // Gradiente Linear Vertical: Base (Cor Sólida) -> Topo (Cor Mais Clara)
-            let startColor = color.cgColor // Começa com a cor base
-            let endColor = UIColor.white.withAlphaComponent(0.6).cgColor // Termina mais claro
-            
-            let colors = [startColor, endColor] as CFArray
-            let locations: [CGFloat] = [0.0, 1.0]
-            
-            if let gradient = CGGradient(colorsSpace: CGColorSpaceCreateDeviceRGB(), colors: colors, locations: locations) {
-                let start = CGPoint(x: pathBounds.midX, y: size.height) // Base da imagem
-                let end = CGPoint(x: pathBounds.midX, y: 0) // Topo da imagem
-                ctx.drawLinearGradient(gradient, start: start, end: end, options: [])
-            }
-        }
-        
-        return SKTexture(image: image)
-    }
-    
-    /// Gera uma textura de gradiente radial para polígonos (Diamond).
-    private func createRadialGradientTextureForPolygon(path: CGPath, color: UIColor, size: CGSize) -> SKTexture {
-        let renderer = UIGraphicsImageRenderer(size: size)
-        
-        let image = renderer.image { context in
-            let ctx = context.cgContext
-            let pathBounds = path.boundingBox
-            let center = CGPoint(x: pathBounds.midX, y: pathBounds.midY)
-            let maxRadius = max(pathBounds.width, pathBounds.height) / 2
-            
-            ctx.translateBy(x: -pathBounds.minX, y: -pathBounds.minY)
-            
-            ctx.addPath(path)
-            ctx.clip()
-            
-            // Gradiente Radial
-            let colors = [UIColor.white.withAlphaComponent(0.6).cgColor, color.cgColor] as CFArray
-            let locations: [CGFloat] = [0.0, 1.0]
-            
-            if let gradient = CGGradient(colorsSpace: CGColorSpaceCreateDeviceRGB(), colors: colors, locations: locations) {
-                ctx.drawRadialGradient(gradient, startCenter: center, startRadius: 0, endCenter: center, endRadius: maxRadius, options: [])
-            }
-        }
-        
         return SKTexture(image: image)
     }
     
@@ -415,25 +305,12 @@ class PolyrhythmScene: SKScene {
             obstacle.position = CGPoint(x: frame.midX, y: frame.midY)
         }
         
-        // Configurações Comuns (Vibrante 2D)
+        // Configurações Comuns (Cor Sólida Vibrante)
         obstacle.name = GameConstants.UI.obstacleName
         
-        if shape == .triangle {
-            // Triângulo: Cor sólida para evitar artefatos de gradiente (triângulo invertido)
-            obstacle.fillTexture = nil
-            obstacle.fillColor = .orange
-        } else {
-            let texture: SKTexture
-            if shape == .rectangle || shape == .hexagon {
-                texture = createLinearGradientTexture(path: path, color: .orange, size: path.boundingBox.size)
-            } else { // Diamond
-                texture = createRadialGradientTextureForPolygon(path: path, color: .orange, size: path.boundingBox.size)
-            }
-            obstacle.fillTexture = texture
-            obstacle.fillColor = .white
-        }
-        
-        obstacle.strokeColor = .white // Borda uniforme vetorial
+        obstacle.fillTexture = nil
+        obstacle.fillColor = .orange
+        obstacle.strokeColor = .white
         obstacle.lineWidth = 2.0
         obstacle.blendMode = .alpha
         
