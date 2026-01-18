@@ -8,7 +8,7 @@ import SpriteKit
 /// - A renderização da `SpriteView`.
 /// - A camada de controles flutuantes (Dock) para adicionar elementos e controlar a simulação.
 /// - A detecção de gestos de magnificação (pinça) e rotação para manipulação direta de objetos na cena.
-struct ContentView: View {
+struct SimulationView: View {
     
     /// ViewModel que gerencia o estado da simulação e a comunicação com a cena SpriteKit.
     @State private var viewModel = SimulationViewModel()
@@ -100,5 +100,5 @@ struct ContentView: View {
 }
 
 #Preview {
-    ContentView()
+    SimulationView()
 }

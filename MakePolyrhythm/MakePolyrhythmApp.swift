@@ -11,7 +11,7 @@ import SwiftUI
 struct MakePolyrhythmApp: App {
     var body: some Scene {
         WindowGroup {
-            ContentView()
+            SimulationView()
         }
     }
 }
