@@ -26,6 +26,7 @@ enum GameConstants {
     /// Configurações de Interface e Limites
     enum UI {
         static let obstacleName = "obstacle"
+        static let ballName = "ball"
         // Margens de segurança para impedir objetos sob Dynamic Island ou Home Indicator
         static let topSafeArea: CGFloat = 50.0
         static let bottomSafeArea: CGFloat = 150.0 // Maior por causa dos controles flutuantes
@@ -49,6 +50,10 @@ class PolyrhythmScene: SKScene {
     
     // Estado interno
     private var selectedNode: SKNode?
+    
+    // Estado de arrasto para cálculo de velocidade (Flick/Throw)
+    private var lastTouchLocation: CGPoint?
+    private var lastTouchTime: TimeInterval?
     
     /// Controla o estado de pausa da simulação física.
     var isPausedSimulation: Bool = false {
@@ -138,6 +143,7 @@ class PolyrhythmScene: SKScene {
     
     func addBall() {
         let ball = SKShapeNode(circleOfRadius: GameConstants.Physics.ballRadius)
+        ball.name = GameConstants.UI.ballName
         ball.fillColor = .cyan
         ball.strokeColor = .white
         ball.position = CGPoint(x: frame.midX, y: frame.midY)
@@ -205,72 +211,142 @@ class PolyrhythmScene: SKScene {
     
     // MARK: - Touch Handling
     
-    /// Detecta o início de um toque para selecionar obstáculos.
-    /// - Aplica feedback visual (escala/fade) ao selecionar.
-    /// - Para a rotação angular física para facilitar a manipulação.
+    /// Detecta o início de um toque para selecionar obstáculos ou pegar bolas.
     override func touchesBegan(_ touches: Set<UITouch>, with event: UIEvent?) {
         guard let touch = touches.first else { return }
         let location = touch.location(in: self)
         let touchedNodes = nodes(at: location)
         
-        // Se tocou em um obstáculo
+        // Prioridade 1: Obstáculos (Edição)
         if let obstacleNode = touchedNodes.first(where: { $0.name == GameConstants.UI.obstacleName }) {
-            // Se já havia um selecionado diferente, restaure o visual dele (opcional, simplificado aqui)
-            // Para este protótipo, assumimos que o usuário seleciona um novo.
-            
-            selectedNode = obstacleNode
-            
-            // Feedback visual de seleção
-            let scaleUp = SKAction.scale(to: 1.1, duration: 0.1) // Escala leve para indicar seleção
-            let fade = SKAction.fadeAlpha(to: 0.8, duration: 0.1)
-            obstacleNode.run(SKAction.group([scaleUp, fade]))
-            
+            selectNode(obstacleNode, isBall: false)
             obstacleNode.physicsBody?.angularVelocity = 0
             
+        // Prioridade 2: Bolas (Interação Física)
+        } else if let ballNode = touchedNodes.first(where: { $0.name == GameConstants.UI.ballName }) {
+            selectNode(ballNode, isBall: true)
+            
+            // Preparar para arrasto físico
+            ballNode.physicsBody?.isDynamic = false // "Pegar na mão"
+            ballNode.physicsBody?.velocity = .zero
+            
+            // Iniciar rastreamento para cálculo de arremesso
+            lastTouchLocation = location
+            lastTouchTime = touch.timestamp
+            
         } else {
-            // Tocou no fundo -> Deselecionar
-            if let prevNode = selectedNode {
-                let scaleDown = SKAction.scale(to: 1.0, duration: 0.1)
-                let fadeBack = SKAction.fadeAlpha(to: 1.0, duration: 0.1)
-                prevNode.run(SKAction.group([scaleDown, fadeBack]))
-            }
-            selectedNode = nil
+            // Tocou no fundo -> Deselecionar se houver seleção anterior
+            deselectCurrentNode()
         }
     }
     
-    /// Manipula o arrasto de objetos selecionados.
-    /// - Restringe o movimento dentro das margens seguras definidas em `GameConstants.UI` para evitar que objetos saiam da tela.
+    /// Manipula o arrasto de objetos.
+    /// - Para obstáculos: Move e restringe às margens.
+    /// - Para bolas: Move livremente (ou restrito) e rastreia velocidade para lançamento.
     override func touchesMoved(_ touches: Set<UITouch>, with event: UIEvent?) {
         guard let touch = touches.first, let node = selectedNode else { return }
         let location = touch.location(in: self)
         
-        // Usar margens fixas para permitir que o objeto chegue mais perto das bordas,
-        // independentemente do seu tamanho (pode haver um leve corte visual, o que é desejado)
+        // Clamp de segurança (vale para ambos para não perder objetos fora da tela)
         let hMargin = GameConstants.UI.horizontalMargin
         let vMargin = GameConstants.UI.verticalDragMargin
         
-        // Definir limites da tela baseados no CENTRO do objeto
-        // As margens aqui evitam que o centro do objeto vá além, permitindo que parte do objeto
-        // possa tocar/atravessar um pouco a borda, se for grande.
         let minX = frame.minX + hMargin
         let maxX = frame.maxX - hMargin
         let minY = frame.minY + vMargin
         let maxY = frame.maxY - vMargin
         
-        // Restringir posição (Clamp)
         let clampedX = min(max(location.x, minX), maxX)
         let clampedY = min(max(location.y, minY), maxY)
+        let newPosition = CGPoint(x: clampedX, y: clampedY)
         
-        node.position = CGPoint(x: clampedX, y: clampedY)
+        node.position = newPosition
+        
+        // Se for bola, atualizamos o rastreamento para o arremesso
+        if node.name == GameConstants.UI.ballName {
+            // A velocidade instantânea será calculada no final, mas precisamos manter o último ponto válido
+            // Poderíamos fazer média móvel aqui, mas lastTouchLocation basta para flick simples.
+            // Atualizamos a cada move para ter o vetor do último frame
+            // Nota: Se movermos muito rápido, o touch pode pular.
+        }
     }
     
-    /// Finaliza a interação de toque.
-    /// Nota: A seleção é mantida (não é limpa em `touchesEnded`) para permitir a continuação da edição via gestos (pinça/rotação) sem precisar tocar novamente.
+    /// Finaliza a interação.
+    /// - Para bolas: Calcula a velocidade de lançamento e reativa a física.
     override func touchesEnded(_ touches: Set<UITouch>, with event: UIEvent?) {
-        // Não removemos a seleção ao soltar, para permitir edição via UI.
-        // Apenas paramos o arrasto (que é implícito pelo fim do movimento).
-        // Poderíamos restaurar a escala/alpha aqui se quiséssemos apenas efeito de "click",
-        // mas como é estado de "seleção", manter visualmente distinto ajuda.
+        guard let touch = touches.first, let node = selectedNode else { return }
+        
+        if node.name == GameConstants.UI.ballName {
+            // Lógica de Arremesso (Flick)
+            let currentLocation = touch.location(in: self)
+            let currentTime = touch.timestamp
+            
+            // Reativar física
+            node.physicsBody?.isDynamic = true
+            
+            if let lastPos = lastTouchLocation, let lastTime = lastTouchTime {
+                let dt = currentTime - lastTime
+                
+                // Evitar divisão por zero ou dt muito grande (toque parado)
+                if dt > 0 && dt < 0.2 {
+                    // Calcular vetor velocidade: distancia / tempo
+                    let dx = currentLocation.x - lastPos.x
+                    let dy = currentLocation.y - lastPos.y
+                    
+                    // Fator de sensibilidade (ajuste fino para sensação de "força")
+                    let sensitivity: CGFloat = 1.0 // 1.0 é fisicamente "real" se dt for preciso em segundos
+                    // Como dt é pequeno, dx/dt gera velocidade em points/s.
+                    // SKPhysicsBody.velocity é points/s.
+                    
+                    let velocity = CGVector(dx: dx / CGFloat(dt) * sensitivity, dy: dy / CGFloat(dt) * sensitivity)
+                    
+                    // Aplicar velocidade (com limite máximo para evitar explosão física)
+                    let maxVelocity: CGFloat = 2000.0
+                    let clampedDx = min(max(velocity.dx, -maxVelocity), maxVelocity)
+                    let clampedDy = min(max(velocity.dy, -maxVelocity), maxVelocity)
+                    
+                    node.physicsBody?.velocity = CGVector(dx: clampedDx, dy: clampedDy)
+                } else {
+                    // Se segurou muito tempo parado, solta com velocidade zero
+                    node.physicsBody?.velocity = .zero
+                }
+            }
+            
+            // Limpar seleção de bola (não queremos editar bolas via UI de gestos depois de jogar)
+            deselectCurrentNode()
+            lastTouchLocation = nil
+            lastTouchTime = nil
+        }
+        
+        // Para obstáculos, mantemos selecionado (comportamento original)
+    }
+    
+    // MARK: - Helpers de Seleção
+    
+    private func selectNode(_ node: SKNode, isBall: Bool) {
+        // Se já havia outro selecionado, restaura
+        if let prev = selectedNode, prev != node {
+            restoreNodeVisuals(prev)
+        }
+        
+        selectedNode = node
+        
+        // Feedback visual
+        let scaleUp = SKAction.scale(to: isBall ? 1.2 : 1.1, duration: 0.1)
+        let fade = SKAction.fadeAlpha(to: 0.8, duration: 0.1)
+        node.run(SKAction.group([scaleUp, fade]))
+    }
+    
+    private func deselectCurrentNode() {
+        guard let node = selectedNode else { return }
+        restoreNodeVisuals(node)
+        selectedNode = nil
+    }
+    
+    private func restoreNodeVisuals(_ node: SKNode) {
+        let scaleDown = SKAction.scale(to: 1.0, duration: 0.1)
+        let fadeBack = SKAction.fadeAlpha(to: 1.0, duration: 0.1)
+        node.run(SKAction.group([scaleDown, fadeBack]))
     }
     
     override func touchesCancelled(_ touches: Set<UITouch>, with event: UIEvent?) {
