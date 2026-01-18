@@ -54,6 +54,9 @@ class PolyrhythmScene: SKScene {
     // Estado interno
     private var selectedNode: SKNode?
     
+    // Callback para UI
+    var onObjectSelected: ((Int?) -> Void)?
+    
     // Estado de arrasto para cálculo de velocidade (Flick/Throw)
     private var lastTouchLocation: CGPoint?
     private var lastTouchTime: TimeInterval?
@@ -349,7 +352,32 @@ class PolyrhythmScene: SKScene {
         body.restitution = GameConstants.Physics.defaultRestitution
         
         obstacle.physicsBody = body
+        
+        // Atribuir nota inicial aleatória
+        let randomNoteIndex = Int.random(in: 0..<GameConstants.Audio.harmonicScale.count)
+        obstacle.userData = ["noteIndex": randomNoteIndex]
+        
         addChild(obstacle)
+    }
+    
+    // MARK: - Configuração de Notas
+    
+    func updateSelectedObjectNote(index: Int) {
+        guard let node = selectedNode else { return }
+        
+        // Validar índice
+        let scale = GameConstants.Audio.harmonicScale
+        guard index >= 0 && index < scale.count else { return }
+        
+        // Salvar
+        if node.userData == nil { node.userData = [:] }
+        node.userData?["noteIndex"] = index
+        
+        // Feedback sonoro (Preview)
+        audioService.playNote(frequency: scale[index], duration: 0.2)
+        
+        // Feedback visual (Flash rápido na cor da nota? Opcional, por enquanto mantemos o flash branco padrão)
+        triggerVisualFeedback(node)
     }
     
     func clearBalls() {
@@ -437,12 +465,21 @@ class PolyrhythmScene: SKScene {
         selectedNode = node
         let fade = SKAction.fadeAlpha(to: 0.6, duration: 0.1)
         node.run(fade)
+        
+        // Notificar UI sobre a nota do objeto selecionado
+        if !isBall {
+            let index = node.userData?["noteIndex"] as? Int ?? 0
+            onObjectSelected?(index)
+        } else {
+            onObjectSelected?(nil)
+        }
     }
     
     private func deselectCurrentNode() {
         guard let node = selectedNode else { return }
         restoreNodeVisuals(node)
         selectedNode = nil
+        onObjectSelected?(nil)
     }
     
     private func restoreNodeVisuals(_ node: SKNode) {
@@ -452,9 +489,17 @@ class PolyrhythmScene: SKScene {
     
     // MARK: - Feedback Visual
     
-    /// Aciona um efeito colorido vibrante e pulsante no objeto usando um overlay.
     private func triggerVisualFeedback(_ node: SKNode) {
         guard let shapeNode = node as? SKShapeNode else { return }
+        
+        let targetColor: UIColor
+        if node.name == GameConstants.UI.ballName {
+            targetColor = .cyan
+        } else if node.name == GameConstants.UI.obstacleName {
+            targetColor = .orange
+        } else {
+            targetColor = shapeNode.fillColor
+        }
         
         // Remove ações anteriores de pulso do nó pai
         shapeNode.removeAction(forKey: "pulse")
@@ -466,9 +511,6 @@ class PolyrhythmScene: SKScene {
         if let path = shapeNode.path {
             overlay = SKShapeNode(path: path)
         } else {
-            // Fallback para círculo (bola) se path não acessível (mas addBall usa circleOfRadius que gera path implícito ou rectOf?)
-            // SKShapeNode(circleOfRadius) gera path. Então shapeNode.path deve existir.
-            // Caso seguro:
             overlay = SKShapeNode(circleOfRadius: shapeNode.frame.width / 2)
         }
         
@@ -480,13 +522,12 @@ class PolyrhythmScene: SKScene {
         shapeNode.addChild(overlay)
         
         // 2. Animação de Cores no Overlay (Ciclo Arco-íris)
-        let rainbowColors: [UIColor] = [.magenta, .blue, .cyan, .green, .yellow, .red, .white] // White no final para sumir? Não, fade out.
+        let rainbowColors: [UIColor] = [.magenta, .blue, .cyan, .green, .yellow, .red, .white]
         let duration: TimeInterval = 0.4
         let stepDuration = duration / TimeInterval(rainbowColors.count)
         
         var colorActions: [SKAction] = []
         for color in rainbowColors {
-            // Em SKShapeNode sem textura, fillColor muda a cor diretamente.
             colorActions.append(SKAction.run { overlay.fillColor = color })
             colorActions.append(SKAction.wait(forDuration: stepDuration))
         }
@@ -510,6 +551,16 @@ class PolyrhythmScene: SKScene {
     override func touchesCancelled(_ touches: Set<UITouch>, with event: UIEvent?) {
         touchesEnded(touches, with: event)
     }
+    
+    private func playRandomNote() {
+        let randomNote = GameConstants.Audio.harmonicScale.randomElement() ?? 440.0
+        audioService.playNote(frequency: randomNote, duration: GameConstants.Audio.defaultNoteDuration)
+    }
+    
+    private func playBallCollisionSound() {
+        let randomNote = GameConstants.Audio.harmonicScale.randomElement() ?? 440.0
+        audioService.playBallCollision(frequency: randomNote)
+    }
 }
 
 // MARK: - SKPhysicsContactDelegate
@@ -531,8 +582,17 @@ extension PolyrhythmScene: SKPhysicsContactDelegate {
         if (firstBody.categoryBitMask & GameConstants.Physics.ballCategory != 0) &&
             (secondBody.categoryBitMask & GameConstants.Physics.wallCategory != 0) {
             
-            playRandomNote()
+            // Descobrir qual é a parede (secondBody)
             if let wallNode = secondBody.node {
+                // Tentar ler nota configurada
+                if let noteIndex = wallNode.userData?["noteIndex"] as? Int,
+                   noteIndex < GameConstants.Audio.harmonicScale.count {
+                    let freq = GameConstants.Audio.harmonicScale[noteIndex]
+                    audioService.playNote(frequency: freq, duration: GameConstants.Audio.defaultNoteDuration)
+                } else {
+                    playRandomNote()
+                }
+                
                 triggerVisualFeedback(wallNode)
             }
         }
@@ -544,16 +604,5 @@ extension PolyrhythmScene: SKPhysicsContactDelegate {
             if let ball1 = firstBody.node { triggerVisualFeedback(ball1) }
             if let ball2 = secondBody.node { triggerVisualFeedback(ball2) }
         }
-    }
-    
-    private func playRandomNote() {
-        let randomNote = GameConstants.Audio.harmonicScale.randomElement() ?? 440.0
-        audioService.playNote(frequency: randomNote, duration: GameConstants.Audio.defaultNoteDuration)
-    }
-    
-    private func playBallCollisionSound() {
-        // Usa a mesma escala para harmonia, mas com o timbre percussivo específico
-        let randomNote = GameConstants.Audio.harmonicScale.randomElement() ?? 440.0
-        audioService.playBallCollision(frequency: randomNote)
     }
 }
