@@ -163,9 +163,53 @@ class PolyrhythmScene: SKScene {
         ball.physicsBody = body
         addChild(ball)
         
+        // Adicionar rastro
+        let trail = createTrail(color: .cyan)
+        trail.targetNode = self // Importante: partículas ficam no mundo, não presas à bola
+        ball.addChild(trail)
+        
         let randomDx = CGFloat.random(in: -200...200)
         let randomDy = CGFloat.random(in: -200...200)
         body.velocity = CGVector(dx: randomDx, dy: randomDy)
+    }
+    
+    private func createTrail(color: UIColor) -> SKEmitterNode {
+        let emitter = SKEmitterNode()
+        
+        // Criar textura para garantir visibilidade
+        emitter.particleTexture = createCircleTexture()
+        
+        // Configuração para Rastro Suave (Bolhas Espaçadas)
+        emitter.particleBirthRate = 12 // Menos partículas para o efeito espaçado
+        emitter.particleLifetime = 0.8 // Bolhas duram mais
+        emitter.particlePositionRange = CGVector(dx: 5, dy: 5) // Leve espalhamento lateral
+        emitter.particleAlpha = 0.5 // Opacidade inicial
+        emitter.particleAlphaSpeed = -0.8 // Fade out suave e contínuo
+        emitter.particleScale = 0.4 // Tamanho inicial menor
+        emitter.particleScaleSpeed = -0.5 // Diminuem gradualmente
+        emitter.particleRotationSpeed = CGFloat.pi * 0.5 // Giro suave
+        
+        // Cor e Mistura
+        emitter.particleColor = color
+        emitter.particleColorBlendFactor = 1.0 // Forçar cor sólida
+        emitter.particleBlendMode = .add // Brilho aditivo ajuda em fundo preto
+        
+        // Física
+        emitter.particleSpeed = 0
+        emitter.zPosition = -1 // Atrás da bola
+        
+        return emitter
+    }
+    
+    private func createCircleTexture() -> SKTexture {
+        let radius: CGFloat = 10
+        let size = CGSize(width: radius * 2, height: radius * 2)
+        let renderer = UIGraphicsImageRenderer(size: size)
+        let image = renderer.image { context in
+            context.cgContext.setFillColor(UIColor.white.cgColor)
+            context.cgContext.fillEllipse(in: CGRect(origin: .zero, size: size))
+        }
+        return SKTexture(image: image)
     }
     
     func addObstacle() {
