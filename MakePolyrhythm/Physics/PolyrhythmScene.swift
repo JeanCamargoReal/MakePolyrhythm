@@ -271,12 +271,6 @@ class PolyrhythmScene: SKScene {
                 let end = CGPoint(x: pathBounds.maxX, y: pathBounds.maxY)
                 ctx.drawLinearGradient(gradient, start: start, end: end, options: [])
             }
-            
-            // Borda interna brilhante
-            ctx.addPath(path)
-            ctx.setStrokeColor(UIColor.white.withAlphaComponent(0.8).cgColor)
-            ctx.setLineWidth(3.0)
-            ctx.strokePath()
         }
         
         return SKTexture(image: image)
@@ -292,7 +286,7 @@ class PolyrhythmScene: SKScene {
             let width = CGFloat.random(in: 80...150)
             let height = CGFloat.random(in: 20...40)
             let rect = CGRect(x: -width/2, y: -height/2, width: width, height: height)
-            path = CGPath(roundedRect: rect, cornerWidth: 8, cornerHeight: 8, transform: nil)
+            path = CGPath(rect: rect, transform: nil) // Cantos agudos
             obstacle = SKShapeNode(path: path)
             body = SKPhysicsBody(rectangleOf: CGSize(width: width, height: height))
             
@@ -341,6 +335,7 @@ class PolyrhythmScene: SKScene {
         obstacle.fillTexture = texture
         obstacle.fillColor = .white
         obstacle.strokeColor = .clear
+        obstacle.lineWidth = 2.0
         obstacle.blendMode = .alpha
         
         body.isDynamic = false
