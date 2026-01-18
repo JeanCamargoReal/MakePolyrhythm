@@ -331,10 +331,9 @@ class PolyrhythmScene: SKScene {
         
         selectedNode = node
         
-        // Feedback visual
-        let scaleUp = SKAction.scale(to: isBall ? 1.2 : 1.1, duration: 0.1)
-        let fade = SKAction.fadeAlpha(to: 0.8, duration: 0.1)
-        node.run(SKAction.group([scaleUp, fade]))
+        // Feedback visual (Apenas Alpha para preservar escala do usuário)
+        let fade = SKAction.fadeAlpha(to: 0.6, duration: 0.1) // Mais transparente para indicar "em edição" ou "segurando"
+        node.run(fade)
     }
     
     private func deselectCurrentNode() {
@@ -344,9 +343,9 @@ class PolyrhythmScene: SKScene {
     }
     
     private func restoreNodeVisuals(_ node: SKNode) {
-        let scaleDown = SKAction.scale(to: 1.0, duration: 0.1)
+        // Restaurar visual original
         let fadeBack = SKAction.fadeAlpha(to: 1.0, duration: 0.1)
-        node.run(SKAction.group([scaleDown, fadeBack]))
+        node.run(fadeBack)
     }
     
     override func touchesCancelled(_ touches: Set<UITouch>, with event: UIEvent?) {
