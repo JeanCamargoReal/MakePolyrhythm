@@ -58,79 +58,103 @@ struct ContentView: View {
             
             // Overlay de Controles
             if showControls {
-                // Floating Glass Dock (Controles Principais)
-                HStack(spacing: 20) {
+                VStack(spacing: 15) {
                     
-                    // Grupo: Criação
-                    HStack(spacing: 12) {
-                        GlassyButton(icon: "circle.fill", label: "Add Bola") {
-                            performWithTimer { viewModel.addBall() }
+                    // Editor de Nota (Aparece se objeto selecionado)
+                    if viewModel.isObjectSelected {
+                        VStack(spacing: 8) {
+                            Text("Configurar Nota")
+                                .font(.caption2)
+                                .textCase(.uppercase)
+                                .foregroundStyle(.secondary)
+                                .frame(maxWidth: .infinity, alignment: .leading)
+                            
+                            HStack {
+                                Image(systemName: "music.note")
+                                    .foregroundStyle(.cyan)
+                                
+                                Stepper(value: $viewModel.selectedNoteIndex, in: 0...13) {
+                                    Text("Tom \(viewModel.selectedNoteIndex + 1)")
+                                        .font(.headline)
+                                        .monospacedDigit()
+                                }
+                            }
+                        }
+                        .padding()
+                        .background(.ultraThinMaterial, in: RoundedRectangle(cornerRadius: 16))
+                        .overlay(
+                            RoundedRectangle(cornerRadius: 16)
+                                .stroke(.white.opacity(0.2), lineWidth: 0.5)
+                        )
+                        .padding(.horizontal, 30)
+                        .transition(.move(edge: .bottom).combined(with: .opacity))
+                    }
+                    
+                    HStack(spacing: 20) {
+                        
+                        HStack(spacing: 12) {
+                            GlassyButton(icon: "circle.fill", label: "Add Bola") {
+                                performWithTimer { viewModel.addBall() }
+                            }
+                            
+                            Menu {
+                                Button {
+                                    performWithTimer { viewModel.addObstacle() }
+                                } label: {
+                                    Label("Retângulo", systemImage: "square.fill")
+                                }
+                                Button {
+                                    performWithTimer { viewModel.addTriangle() }
+                                } label: {
+                                    Label("Triângulo", systemImage: "triangle.fill")
+                                }
+                                Button {
+                                    performWithTimer { viewModel.addHexagon() }
+                                } label: {
+                                    Label("Hexágono", systemImage: "hexagon.fill")
+                                }
+                            } label: {
+                                Image(systemName: "plus.square.fill.on.square.fill")
+                                    .font(.title3)
+                                    .fontWeight(.medium)
+                                    .foregroundStyle(.primary)
+                                    .frame(width: 38, height: 38)
+                                    .contentShape(Circle())
+                            }
                         }
                         
-                        // Menu de Formas
-                        Menu {
-                            Button {
-                                performWithTimer { viewModel.addObstacle() }
-                            } label: {
-                                Label("Retângulo", systemImage: "square.fill")
-                            }
-                            
-                            Button {
-                                performWithTimer { viewModel.addTriangle() }
-                            } label: {
-                                Label("Triângulo", systemImage: "triangle.fill")
-                            }
-                            
-                            Button {
-                                performWithTimer { viewModel.addHexagon() }
-                            } label: {
-                                Label("Hexágono", systemImage: "hexagon.fill")
-                            }
-                        } label: {
-                            Image(systemName: "plus.square.fill.on.square.fill")
-                                .font(.title3)
-                                .fontWeight(.medium)
-                                .foregroundStyle(.primary)
-                                .frame(width: 38, height: 38)
-                                .contentShape(Circle())
+                        Rectangle()
+                            .fill(.secondary.opacity(0.3))
+                            .frame(width: 1, height: 20)
+                        
+                        GlassyButton(
+                            icon: viewModel.isPaused ? "play.fill" : "pause.fill",
+                            label: viewModel.isPaused ? "Play" : "Pause"
+                        ) {
+                            performWithTimer { viewModel.togglePause() }
+                        }
+                        .contentTransition(.symbolEffect(.replace))
+                        
+                        Rectangle()
+                            .fill(.secondary.opacity(0.3))
+                            .frame(width: 1, height: 20)
+                        
+                        GlassyButton(icon: "trash.fill", label: "Limpar", color: .red) {
+                            performWithTimer { viewModel.clearBalls() }
                         }
                     }
-                    
-                    // Divisor Visual
-                    Rectangle()
-                        .fill(.secondary.opacity(0.3))
-                        .frame(width: 1, height: 20)
-                    
-                    // Grupo: Controle
-                    GlassyButton(
-                        icon: viewModel.isPaused ? "play.fill" : "pause.fill",
-                        label: viewModel.isPaused ? "Play" : "Pause"
-                    ) {
-                        performWithTimer { viewModel.togglePause() }
-                    }
-                    .contentTransition(.symbolEffect(.replace))
-                    
-                    // Divisor Visual
-                    Rectangle()
-                        .fill(.secondary.opacity(0.3))
-                        .frame(width: 1, height: 20)
-                    
-                    // Grupo: Destrutivo
-                    GlassyButton(icon: "trash.fill", label: "Limpar", color: .red) {
-                        performWithTimer { viewModel.clearBalls() }
-                    }
+                    .padding(.horizontal, 20)
+                    .padding(.vertical, 10)
+                    .background(.ultraThinMaterial, in: Capsule())
+                    .overlay(
+                        Capsule()
+                            .stroke(.white.opacity(0.2), lineWidth: 0.5)
+                    )
+                    .shadow(color: .black.opacity(0.2), radius: 15, x: 0, y: 8)
                 }
-                .padding(.horizontal, 20)
-                .padding(.vertical, 10)
-                .background(.ultraThinMaterial, in: Capsule())
-                .overlay(
-                    Capsule()
-                        .stroke(.white.opacity(0.2), lineWidth: 0.5)
-                )
-                .shadow(color: .black.opacity(0.2), radius: 15, x: 0, y: 8)
                 .padding(.bottom, 15)
                 .transition(.move(edge: .bottom).combined(with: .opacity))
-                .zIndex(1) // Garante que fique acima do sensor
+                .zIndex(1)
             }
         }
         .animation(.spring(response: 0.4, dampingFraction: 0.8), value: showControls)

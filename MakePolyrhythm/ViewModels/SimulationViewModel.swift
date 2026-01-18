@@ -23,6 +23,16 @@ class SimulationViewModel {
         }
     }
     
+    // Estado de Seleção e Edição de Notas
+    var isObjectSelected: Bool = false
+    var selectedNoteIndex: Int = 0 {
+        didSet {
+            if isObjectSelected {
+                scene.updateSelectedObjectNote(index: selectedNoteIndex)
+            }
+        }
+    }
+    
     // MARK: - Estado Interno de Gestos
     
     /// Armazena o último fator de escala aplicado durante um gesto de pinça, para cálculo incremental.
@@ -40,6 +50,19 @@ class SimulationViewModel {
         let newScene = PolyrhythmScene(audioService: audioService, size: CGSize(width: 300, height: 600))
         newScene.scaleMode = .resizeFill
         self.scene = newScene
+        
+        // Configurar Callback de Seleção
+        self.scene.onObjectSelected = { [weak self] index in
+            Task { @MainActor [weak self] in
+                guard let self = self else { return }
+                if let index = index {
+                    self.isObjectSelected = true
+                    self.selectedNoteIndex = index
+                } else {
+                    self.isObjectSelected = false
+                }
+            }
+        }
         
         // Callback não é mais necessário para UI, pois usamos gestos diretos
         // self.scene.nodeSelectedCallback = ...
