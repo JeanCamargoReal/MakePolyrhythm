@@ -139,6 +139,14 @@ class PolyrhythmScene: SKScene {
         self.physicsBody = borderBody
     }
     
+    // MARK: - Tipos Auxiliares
+    
+    enum ObstacleShape {
+        case rectangle
+        case triangle
+        case hexagon
+    }
+
     // MARK: - Gestão de Entidades
     
     func addBall() {
@@ -212,31 +220,65 @@ class PolyrhythmScene: SKScene {
         return SKTexture(image: image)
     }
     
-    func addObstacle() {
-        let width = CGFloat.random(in: 80...150)
-        let height = CGFloat.random(in: 20...40)
-        let size = CGSize(width: width, height: height)
+    func addObstacle(shape: ObstacleShape = .rectangle) {
+        let obstacle: SKShapeNode
+        let body: SKPhysicsBody
         
-        let obstacle = SKShapeNode(rectOf: size, cornerRadius: 8)
+        switch shape {
+        case .rectangle:
+            let width = CGFloat.random(in: 80...150)
+            let height = CGFloat.random(in: 20...40)
+            let size = CGSize(width: width, height: height)
+            
+            obstacle = SKShapeNode(rectOf: size, cornerRadius: 8)
+            body = SKPhysicsBody(rectangleOf: size)
+            
+            // Posição Aleatória (respeitando margens seguras)
+            let minX = frame.minX + GameConstants.UI.horizontalMargin + (width/2)
+            let maxX = frame.maxX - GameConstants.UI.horizontalMargin - (width/2)
+            let minY = frame.minY + GameConstants.UI.bottomSafeArea + (height/2)
+            let maxY = frame.maxY - GameConstants.UI.topSafeArea - (height/2)
+            
+            let safeX = minX < maxX ? CGFloat.random(in: minX...maxX) : frame.midX
+            let safeY = minY < maxY ? CGFloat.random(in: minY...maxY) : frame.midY
+            obstacle.position = CGPoint(x: safeX, y: safeY)
+            obstacle.zRotation = CGFloat.random(in: 0...CGFloat.pi)
+            
+        case .triangle:
+            let path = CGMutablePath()
+            let side: CGFloat = 120.0
+            let height = side * sqrt(3) / 2
+            // Triângulo equilátero centrado
+            path.move(to: CGPoint(x: 0, y: height/2))
+            path.addLine(to: CGPoint(x: side/2, y: -height/2))
+            path.addLine(to: CGPoint(x: -side/2, y: -height/2))
+            path.closeSubpath()
+            
+            obstacle = SKShapeNode(path: path)
+            body = SKPhysicsBody(polygonFrom: path)
+            obstacle.position = CGPoint(x: frame.midX, y: frame.midY)
+            
+        case .hexagon:
+            let path = CGMutablePath()
+            let radius: CGFloat = 70.0
+            for i in 0..<6 {
+                let angle = CGFloat(i) * (2 * CGFloat.pi / 6)
+                let point = CGPoint(x: radius * cos(angle), y: radius * sin(angle))
+                if i == 0 { path.move(to: point) } else { path.addLine(to: point) }
+            }
+            path.closeSubpath()
+            
+            obstacle = SKShapeNode(path: path)
+            body = SKPhysicsBody(polygonFrom: path)
+            obstacle.position = CGPoint(x: frame.midX, y: frame.midY)
+        }
+        
+        // Configurações Comuns
         obstacle.name = GameConstants.UI.obstacleName
         obstacle.fillColor = .orange
         obstacle.strokeColor = .white
+        obstacle.lineWidth = 2
         
-        // Posição Aleatória (respeitando margens seguras)
-        // Usamos as constantes definidas para garantir que não nasça em local inacessível
-        let minX = frame.minX + GameConstants.UI.horizontalMargin + (width/2)
-        let maxX = frame.maxX - GameConstants.UI.horizontalMargin - (width/2)
-        let minY = frame.minY + GameConstants.UI.bottomSafeArea + (height/2)
-        let maxY = frame.maxY - GameConstants.UI.topSafeArea - (height/2)
-        
-        // Verificação de segurança caso a tela seja muito pequena
-        let safeX = minX < maxX ? CGFloat.random(in: minX...maxX) : frame.midX
-        let safeY = minY < maxY ? CGFloat.random(in: minY...maxY) : frame.midY
-        
-        obstacle.position = CGPoint(x: safeX, y: safeY)
-        obstacle.zRotation = CGFloat.random(in: 0...CGFloat.pi)
-        
-        let body = SKPhysicsBody(rectangleOf: size)
         body.isDynamic = false
         body.categoryBitMask = GameConstants.Physics.wallCategory
         body.contactTestBitMask = GameConstants.Physics.ballCategory

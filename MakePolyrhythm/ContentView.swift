@@ -67,8 +67,32 @@ struct ContentView: View {
                             performWithTimer { viewModel.addBall() }
                         }
                         
-                        GlassyButton(icon: "cube.fill", label: "Add Objeto") {
-                            performWithTimer { viewModel.addObstacle() }
+                        // Menu de Formas
+                        Menu {
+                            Button {
+                                performWithTimer { viewModel.addObstacle() }
+                            } label: {
+                                Label("Retângulo", systemImage: "square.fill")
+                            }
+                            
+                            Button {
+                                performWithTimer { viewModel.addTriangle() }
+                            } label: {
+                                Label("Triângulo", systemImage: "triangle.fill")
+                            }
+                            
+                            Button {
+                                performWithTimer { viewModel.addHexagon() }
+                            } label: {
+                                Label("Hexágono", systemImage: "hexagon.fill")
+                            }
+                        } label: {
+                            Image(systemName: "plus.square.fill.on.square.fill")
+                                .font(.title3)
+                                .fontWeight(.medium)
+                                .foregroundStyle(.primary)
+                                .frame(width: 38, height: 38)
+                                .contentShape(Circle())
                         }
                     }
                     

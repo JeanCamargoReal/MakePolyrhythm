@@ -71,8 +71,18 @@ class SimulationViewModel {
         scene.addBall()
     }
     
+    // MARK: - Adicionar Formas
+    
     func addObstacle() {
-        scene.addObstacle()
+        scene.addObstacle(shape: .rectangle)
+    }
+    
+    func addTriangle() {
+        scene.addObstacle(shape: .triangle)
+    }
+    
+    func addHexagon() {
+        scene.addObstacle(shape: .hexagon)
     }
     
     func clearBalls() {
