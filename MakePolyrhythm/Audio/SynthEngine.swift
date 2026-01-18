@@ -59,6 +59,48 @@ final class SynthEngine: AudioServiceProtocol {
             }
         }
         
+        scheduleBuffer(buffer)
+    }
+    
+    /// Toca um som de colisão de bola (percussivo, tipo woodblock suave).
+    func playBallCollision(frequency: Float) {
+        guard let format = self.format else { return }
+        
+        let duration = 0.08 // Duração fixa curta para percussão
+        let sampleRate = Float(format.sampleRate)
+        let totalFrames = UInt32(duration * Double(sampleRate))
+        
+        guard let buffer = AVAudioPCMBuffer(pcmFormat: format, frameCapacity: totalFrames) else { return }
+        buffer.frameLength = totalFrames
+        
+        let channels = Int(format.channelCount)
+        if let floatChannelData = buffer.floatChannelData {
+            for frame in 0..<Int(totalFrames) {
+                let t = Float(frame) / sampleRate
+                let progress = Float(frame) / Float(totalFrames)
+                
+                // Envelope Exponencial para som percussivo (ataque rápido, decay suave)
+                // pow(1.0 - progress, 2.0) cria uma curva côncava suave
+                let envelope = pow(1.0 - progress, 2.5)
+                
+                // Leve Pitch Drop (simula tensão de membrana/impacto)
+                // A frequência cai levemente (ex: 5%) ao longo do som
+                let pitchEnvelope = 1.0 - (progress * 0.05)
+                let currentFreq = frequency * pitchEnvelope
+                
+                // Onda senoidal pura (timbre "arredondado" e suave, bom para TDAH)
+                let value = sin(2.0 * Float.pi * currentFreq * t)
+                
+                for channel in 0..<channels {
+                    floatChannelData[channel][frame] = value * envelope * 0.6 // Amplitude levemente maior pois é curto
+                }
+            }
+        }
+        
+        scheduleBuffer(buffer)
+    }
+    
+    private func scheduleBuffer(_ buffer: AVAudioPCMBuffer) {
         // Agendar e tocar
         playerNode.scheduleBuffer(buffer, at: nil, options: .interrupts) {
             // Completion handler

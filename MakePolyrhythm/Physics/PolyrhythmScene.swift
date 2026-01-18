@@ -303,12 +303,18 @@ extension PolyrhythmScene: SKPhysicsContactDelegate {
         else if (firstBody.categoryBitMask & GameConstants.Physics.ballCategory != 0) &&
                 (secondBody.categoryBitMask & GameConstants.Physics.ballCategory != 0) {
             
-            playRandomNote()
+            playBallCollisionSound()
         }
     }
     
     private func playRandomNote() {
         let randomNote = GameConstants.Audio.pentatonicScale.randomElement() ?? 440.0
         audioService.playNote(frequency: randomNote, duration: GameConstants.Audio.defaultNoteDuration)
+    }
+    
+    private func playBallCollisionSound() {
+        // Usa a mesma escala para harmonia, mas com o timbre percussivo específico
+        let randomNote = GameConstants.Audio.pentatonicScale.randomElement() ?? 440.0
+        audioService.playBallCollision(frequency: randomNote)
     }
 }
