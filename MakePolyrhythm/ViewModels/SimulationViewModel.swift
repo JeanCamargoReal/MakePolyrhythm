@@ -55,67 +55,80 @@ class SimulationViewModel {
         self.scene.onObjectSelected = { [weak self] index in
             Task { @MainActor [weak self] in
                 guard let self = self else { return }
-                if let index = index {
-                    self.isObjectSelected = true
-                    self.selectedNoteIndex = index
-                } else {
-                    self.isObjectSelected = false
+                // Envolver em withAnimation para suavizar a transição da UI
+                withAnimation {
+                    if let index = index {
+                        self.isObjectSelected = true
+                        self.selectedNoteIndex = index
+                    } else {
+                        self.isObjectSelected = false
+                    }
                 }
             }
         }
-        
-        // Callback não é mais necessário para UI, pois usamos gestos diretos
-        // self.scene.nodeSelectedCallback = ...
     }
     
     // MARK: - Gestos
     
+    /// Manipula a mudança de escala de um gesto de pinça.
+    /// - Parameter scale: O valor de escala reportado pelo gesto.
     func handleScaleChange(scale: CGFloat) {
         let delta = scale / lastScale
         lastScale = scale
         scene.scaleSelectedNode(by: delta)
     }
     
+    /// Finaliza o gesto de escala, resetando o estado interno.
     func handleScaleEnd() {
         lastScale = 1.0
     }
     
+    /// Manipula a mudança de rotação de um gesto.
+    /// - Parameter angle: O valor de ângulo reportado pelo gesto.
     func handleRotationChange(angle: Angle) {
         let delta = angle - lastRotation
         lastRotation = angle
         scene.rotateSelectedNode(by: delta.radians)
     }
     
+    /// Finaliza o gesto de rotação, resetando o estado interno.
     func handleRotationEnd() {
         lastRotation = .zero
     }
     
+    // MARK: - Ações
+    
+    /// Adiciona uma nova bola à cena.
     func addBall() {
         scene.addBall()
     }
     
-    // MARK: - Adicionar Formas
-    
-    func addObstacle() {
+    /// Adiciona um obstáculo retangular padrão à cena.
+    func addObstacle() { // Default to rectangle
         scene.addObstacle(shape: .rectangle)
     }
     
+    /// Adiciona um obstáculo triangular à cena.
     func addTriangle() {
         scene.addObstacle(shape: .triangle)
     }
     
+    /// Adiciona um obstáculo hexagonal à cena.
     func addHexagon() {
         scene.addObstacle(shape: .hexagon)
     }
     
+    /// Adiciona um obstáculo em formato de losango à cena.
     func addDiamond() {
         scene.addObstacle(shape: .diamond)
     }
     
+    /// Remove todas as bolas da cena.
     func clearBalls() {
         scene.clearBalls()
     }
     
+    /// Alterna o estado de pausa da simulação (Play/Pause).
     func togglePause() {
         isPaused.toggle()
     }
