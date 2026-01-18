@@ -452,28 +452,59 @@ class PolyrhythmScene: SKScene {
     
     // MARK: - Feedback Visual
     
+    /// Aciona um efeito colorido vibrante e pulsante no objeto usando um overlay.
     private func triggerVisualFeedback(_ node: SKNode) {
         guard let shapeNode = node as? SKShapeNode else { return }
         
-        let targetColor: UIColor
-        if node.name == GameConstants.UI.ballName {
-            targetColor = .cyan
-        } else if node.name == GameConstants.UI.obstacleName {
-            targetColor = .orange
+        // Remove ações anteriores de pulso do nó pai
+        shapeNode.removeAction(forKey: "pulse")
+        // Remove overlays antigos se houver
+        shapeNode.childNode(withName: "flashOverlay")?.removeFromParent()
+        
+        // 1. Criar Overlay para a cor (garante que a cor apareça sobre a textura)
+        let overlay: SKShapeNode
+        if let path = shapeNode.path {
+            overlay = SKShapeNode(path: path)
         } else {
-            targetColor = shapeNode.fillColor
+            // Fallback para círculo (bola) se path não acessível (mas addBall usa circleOfRadius que gera path implícito ou rectOf?)
+            // SKShapeNode(circleOfRadius) gera path. Então shapeNode.path deve existir.
+            // Caso seguro:
+            overlay = SKShapeNode(circleOfRadius: shapeNode.frame.width / 2)
         }
         
-        shapeNode.removeAction(forKey: "flash")
-        shapeNode.fillColor = .white
+        overlay.name = "flashOverlay"
+        overlay.strokeColor = .clear
+        overlay.zPosition = 1 // Em cima da textura original
+        overlay.alpha = 0.8   // Leve transparência para misturar
         
-        let wait = SKAction.wait(forDuration: 0.05)
-        let restore = SKAction.run {
-            shapeNode.fillColor = targetColor
+        shapeNode.addChild(overlay)
+        
+        // 2. Animação de Cores no Overlay (Ciclo Arco-íris)
+        let rainbowColors: [UIColor] = [.magenta, .blue, .cyan, .green, .yellow, .red, .white] // White no final para sumir? Não, fade out.
+        let duration: TimeInterval = 0.4
+        let stepDuration = duration / TimeInterval(rainbowColors.count)
+        
+        var colorActions: [SKAction] = []
+        for color in rainbowColors {
+            // Em SKShapeNode sem textura, fillColor muda a cor diretamente.
+            colorActions.append(SKAction.run { overlay.fillColor = color })
+            colorActions.append(SKAction.wait(forDuration: stepDuration))
         }
-        let sequence = SKAction.sequence([wait, restore])
+        let colorSequence = SKAction.sequence(colorActions)
         
-        shapeNode.run(sequence, withKey: "flash")
+        // Fade out e remover overlay
+        let fadeOut = SKAction.fadeOut(withDuration: 0.1)
+        let remove = SKAction.removeFromParent()
+        let overlaySequence = SKAction.sequence([colorSequence, fadeOut, remove])
+        
+        overlay.run(overlaySequence)
+        
+        // 3. Animação de Pulso no Nó Pai (Impacto Físico)
+        let scaleUp = SKAction.scale(to: 1.15, duration: 0.05)
+        let scaleDown = SKAction.scale(to: 1.0, duration: 0.35)
+        let pulseSequence = SKAction.sequence([scaleUp, scaleDown])
+        
+        shapeNode.run(pulseSequence, withKey: "pulse")
     }
     
     override func touchesCancelled(_ touches: Set<UITouch>, with event: UIEvent?) {
