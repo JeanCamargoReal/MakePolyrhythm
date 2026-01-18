@@ -348,6 +348,36 @@ class PolyrhythmScene: SKScene {
         node.run(fadeBack)
     }
     
+    // MARK: - Feedback Visual
+    
+    /// Aciona um flash visual no nó (brilho branco rápido).
+    private func triggerVisualFeedback(_ node: SKNode) {
+        guard let shapeNode = node as? SKShapeNode else { return }
+        
+        // Determinar cor original baseada no tipo, para evitar bug de capturar "branco" durante flashes repetidos
+        let targetColor: UIColor
+        if node.name == GameConstants.UI.ballName {
+            targetColor = .cyan
+        } else if node.name == GameConstants.UI.obstacleName {
+            targetColor = .orange
+        } else {
+            targetColor = shapeNode.fillColor // Fallback
+        }
+        
+        // Remove ações anteriores de flash para evitar conflito de cores
+        shapeNode.removeAction(forKey: "flash")
+        
+        shapeNode.fillColor = .white
+        
+        let wait = SKAction.wait(forDuration: 0.05)
+        let restore = SKAction.run {
+            shapeNode.fillColor = targetColor
+        }
+        let sequence = SKAction.sequence([wait, restore])
+        
+        shapeNode.run(sequence, withKey: "flash")
+    }
+    
     override func touchesCancelled(_ touches: Set<UITouch>, with event: UIEvent?) {
         touchesEnded(touches, with: event)
     }
@@ -373,12 +403,17 @@ extension PolyrhythmScene: SKPhysicsContactDelegate {
             (secondBody.categoryBitMask & GameConstants.Physics.wallCategory != 0) {
             
             playRandomNote()
+            if let wallNode = secondBody.node {
+                triggerVisualFeedback(wallNode)
+            }
         }
         // Colisão Bola (1) x Bola (1)
         else if (firstBody.categoryBitMask & GameConstants.Physics.ballCategory != 0) &&
                 (secondBody.categoryBitMask & GameConstants.Physics.ballCategory != 0) {
             
             playBallCollisionSound()
+            if let ball1 = firstBody.node { triggerVisualFeedback(ball1) }
+            if let ball2 = secondBody.node { triggerVisualFeedback(ball2) }
         }
     }
     
