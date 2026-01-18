@@ -64,7 +64,9 @@ struct SimulationView: View {
                     
                     // Editor de Nota (Aparece se objeto selecionado)
                     if viewModel.isObjectSelected {
-                        NoteEditorPanel(selectedNoteIndex: $viewModel.selectedNoteIndex)
+                        NoteEditorPanel(selectedNoteIndex: $viewModel.selectedNoteIndex) {
+                            showControlsWithTimer()
+                        }
                     }
                     
                     // Floating Glass Dock (Controles Principais)
@@ -78,6 +80,11 @@ struct SimulationView: View {
             }
         }
         .animation(.spring(response: 0.4, dampingFraction: 0.8), value: showControls)
+        .onChange(of: viewModel.isObjectSelected) { isSelected in
+            if isSelected {
+                showControlsWithTimer()
+            }
+        }
     }
     
     // MARK: - Lógica de Controle

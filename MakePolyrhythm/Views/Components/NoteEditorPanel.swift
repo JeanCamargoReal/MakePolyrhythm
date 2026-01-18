@@ -9,6 +9,9 @@ struct NoteEditorPanel: View {
     /// Binding para o índice da nota selecionada no ViewModel.
     @Binding var selectedNoteIndex: Int
     
+    /// Callback para notificar interação (resetar timer de visibilidade).
+    var onInteraction: () -> Void = {}
+    
     var body: some View {
         VStack(spacing: 8) {
             Text("Configurar Nota")
@@ -26,6 +29,9 @@ struct NoteEditorPanel: View {
                         .font(.headline)
                         .monospacedDigit()
                 }
+                .onChange(of: selectedNoteIndex) { _ in
+                    onInteraction()
+                }
             }
         }
         .padding()
@@ -36,6 +42,9 @@ struct NoteEditorPanel: View {
         )
         .padding(.horizontal, 30)
         .transition(.move(edge: .bottom).combined(with: .opacity))
+        .onTapGesture {
+            onInteraction()
+        }
     }
 }
 
