@@ -18,8 +18,11 @@ enum GameConstants {
     
     /// Configurações de Áudio
     enum Audio {
-        /// Escala Pentatônica para geração de melodias harmoniosas.
-        static let pentatonicScale: [Float] = [261.63, 293.66, 329.63, 392.00, 440.00, 523.25]
+        /// Escala Harmônica (Lídio) para sons etéreos e polifônicos.
+        static let harmonicScale: [Float] = [
+            261.63, 293.66, 329.63, 369.99, 392.00, 440.00, 493.88, // Oitava 4
+            523.25, 587.33, 659.25, 739.99, 783.99, 880.00, 987.77  // Oitava 5
+        ]
         static let defaultNoteDuration: Double = 0.1
     }
     
@@ -513,12 +516,13 @@ extension PolyrhythmScene: SKPhysicsContactDelegate {
     }
     
     private func playRandomNote() {
-        let randomNote = GameConstants.Audio.pentatonicScale.randomElement() ?? 440.0
+        let randomNote = GameConstants.Audio.harmonicScale.randomElement() ?? 440.0
         audioService.playNote(frequency: randomNote, duration: GameConstants.Audio.defaultNoteDuration)
     }
     
     private func playBallCollisionSound() {
-        let randomNote = GameConstants.Audio.pentatonicScale.randomElement() ?? 440.0
+        // Usa a mesma escala para harmonia, mas com o timbre percussivo específico
+        let randomNote = GameConstants.Audio.harmonicScale.randomElement() ?? 440.0
         audioService.playBallCollision(frequency: randomNote)
     }
 }
