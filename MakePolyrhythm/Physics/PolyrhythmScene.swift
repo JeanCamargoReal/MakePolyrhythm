@@ -116,9 +116,6 @@ class PolyrhythmScene: SKScene {
     }
     
     /// Configura as bordas físicas da cena.
-    /// Atualmente define apenas o limite superior, permitindo que objetos saiam pelas laterais/fundo se necessário,
-    /// ou pode ser configurado para fechar o loop dependendo da implementação de 'setupBorders' ativa.
-    /// (Nesta versão, o código reflete um loop completo ajustado pelas margens).
     private func setupBorders() {
         let playableRect = CGRect(
             x: frame.minX,
@@ -152,8 +149,14 @@ class PolyrhythmScene: SKScene {
     func addBall() {
         let ball = SKShapeNode(circleOfRadius: GameConstants.Physics.ballRadius)
         ball.name = GameConstants.UI.ballName
-        ball.fillColor = .cyan
-        ball.strokeColor = .white
+        
+        // Estilo Vibrante 2D (Gradiente Radial)
+        let texture = createRadialGradientTexture(color: .cyan, radius: GameConstants.Physics.ballRadius)
+        ball.fillTexture = texture
+        ball.fillColor = .white // Necessário ser branco para mostrar a textura original
+        ball.strokeColor = .clear // A textura já contém a borda
+        ball.blendMode = .alpha // Blend mode normal
+        
         ball.position = CGPoint(x: frame.midX, y: frame.midY)
         
         let body = SKPhysicsBody(circleOfRadius: GameConstants.Physics.ballRadius)
@@ -173,7 +176,7 @@ class PolyrhythmScene: SKScene {
         
         // Adicionar rastro
         let trail = createTrail(color: .cyan)
-        trail.targetNode = self // Importante: partículas ficam no mundo, não presas à bola
+        trail.targetNode = self
         ball.addChild(trail)
         
         let randomDx = CGFloat.random(in: -200...200)
@@ -188,23 +191,23 @@ class PolyrhythmScene: SKScene {
         emitter.particleTexture = createCircleTexture()
         
         // Configuração para Rastro Suave (Bolhas Espaçadas)
-        emitter.particleBirthRate = 12 // Menos partículas para o efeito espaçado
-        emitter.particleLifetime = 0.8 // Bolhas duram mais
-        emitter.particlePositionRange = CGVector(dx: 5, dy: 5) // Leve espalhamento lateral
-        emitter.particleAlpha = 0.5 // Opacidade inicial
-        emitter.particleAlphaSpeed = -0.8 // Fade out suave e contínuo
-        emitter.particleScale = 0.4 // Tamanho inicial menor
-        emitter.particleScaleSpeed = -0.5 // Diminuem gradualmente
-        emitter.particleRotationSpeed = CGFloat.pi * 0.5 // Giro suave
+        emitter.particleBirthRate = 12
+        emitter.particleLifetime = 0.8
+        emitter.particlePositionRange = CGVector(dx: 5, dy: 5)
+        emitter.particleAlpha = 0.5
+        emitter.particleAlphaSpeed = -0.8
+        emitter.particleScale = 0.4
+        emitter.particleScaleSpeed = -0.5
+        emitter.particleRotationSpeed = CGFloat.pi * 0.5
         
         // Cor e Mistura
         emitter.particleColor = color
-        emitter.particleColorBlendFactor = 1.0 // Forçar cor sólida
-        emitter.particleBlendMode = .add // Brilho aditivo ajuda em fundo preto
+        emitter.particleColorBlendFactor = 1.0
+        emitter.particleBlendMode = .add
         
         // Física
         emitter.particleSpeed = 0
-        emitter.zPosition = -1 // Atrás da bola
+        emitter.zPosition = -1
         
         return emitter
     }
@@ -220,70 +223,130 @@ class PolyrhythmScene: SKScene {
         return SKTexture(image: image)
     }
     
+    /// Gera uma textura de gradiente radial vibrante para bolas (Estilo 2D Moderno).
+    private func createRadialGradientTexture(color: UIColor, radius: CGFloat) -> SKTexture {
+        let size = CGSize(width: radius * 2, height: radius * 2)
+        let renderer = UIGraphicsImageRenderer(size: size)
+        
+        let image = renderer.image { context in
+            let ctx = context.cgContext
+            let center = CGPoint(x: radius, y: radius)
+            
+            // Gradiente Radial: Centro (Branco/Cor Clara) -> Borda (Cor Base Saturada)
+            let colors = [UIColor.white.withAlphaComponent(0.9).cgColor, color.cgColor] as CFArray
+            let locations: [CGFloat] = [0.0, 1.0]
+            
+            if let gradient = CGGradient(colorsSpace: CGColorSpaceCreateDeviceRGB(), colors: colors, locations: locations) {
+                ctx.drawRadialGradient(gradient, startCenter: center, startRadius: 0, endCenter: center, endRadius: radius, options: [])
+            }
+            
+            // Borda fina para definição
+            ctx.setStrokeColor(UIColor.white.withAlphaComponent(0.8).cgColor)
+            ctx.setLineWidth(2.0)
+            ctx.strokeEllipse(in: CGRect(origin: .zero, size: size).insetBy(dx: 1, dy: 1))
+        }
+        
+        return SKTexture(image: image)
+    }
+    
+    /// Gera uma textura de gradiente linear para obstáculos.
+    private func createLinearGradientTexture(path: CGPath, color: UIColor, size: CGSize) -> SKTexture {
+        let renderer = UIGraphicsImageRenderer(size: size)
+        
+        let image = renderer.image { context in
+            let ctx = context.cgContext
+            let pathBounds = path.boundingBox
+            
+            ctx.translateBy(x: -pathBounds.minX, y: -pathBounds.minY)
+            
+            // Clipar pelo path
+            ctx.addPath(path)
+            ctx.clip()
+            
+            // Gradiente Linear Diagonal: Topo-Esq (Claro) -> Base-Dir (Escuro)
+            let colors = [UIColor.white.withAlphaComponent(0.4).cgColor, color.cgColor] as CFArray
+            
+            if let gradient = CGGradient(colorsSpace: CGColorSpaceCreateDeviceRGB(), colors: colors, locations: [0.0, 1.0]) {
+                let start = CGPoint(x: pathBounds.minX, y: pathBounds.minY)
+                let end = CGPoint(x: pathBounds.maxX, y: pathBounds.maxY)
+                ctx.drawLinearGradient(gradient, start: start, end: end, options: [])
+            }
+            
+            // Borda interna brilhante
+            ctx.addPath(path)
+            ctx.setStrokeColor(UIColor.white.withAlphaComponent(0.8).cgColor)
+            ctx.setLineWidth(3.0)
+            ctx.strokePath()
+        }
+        
+        return SKTexture(image: image)
+    }
+    
     func addObstacle(shape: ObstacleShape = .rectangle) {
         let obstacle: SKShapeNode
         let body: SKPhysicsBody
+        let path: CGPath
         
         switch shape {
         case .rectangle:
             let width = CGFloat.random(in: 80...150)
             let height = CGFloat.random(in: 20...40)
-            let size = CGSize(width: width, height: height)
+            let rect = CGRect(x: -width/2, y: -height/2, width: width, height: height)
+            path = CGPath(roundedRect: rect, cornerWidth: 8, cornerHeight: 8, transform: nil)
+            obstacle = SKShapeNode(path: path)
+            body = SKPhysicsBody(rectangleOf: CGSize(width: width, height: height))
             
-            obstacle = SKShapeNode(rectOf: size, cornerRadius: 8)
-            body = SKPhysicsBody(rectangleOf: size)
-            
-            // Posição Aleatória (respeitando margens seguras)
+            // Posição
             let minX = frame.minX + GameConstants.UI.horizontalMargin + (width/2)
             let maxX = frame.maxX - GameConstants.UI.horizontalMargin - (width/2)
             let minY = frame.minY + GameConstants.UI.bottomSafeArea + (height/2)
             let maxY = frame.maxY - GameConstants.UI.topSafeArea - (height/2)
-            
             let safeX = minX < maxX ? CGFloat.random(in: minX...maxX) : frame.midX
             let safeY = minY < maxY ? CGFloat.random(in: minY...maxY) : frame.midY
             obstacle.position = CGPoint(x: safeX, y: safeY)
             obstacle.zRotation = CGFloat.random(in: 0...CGFloat.pi)
             
         case .triangle:
-            let path = CGMutablePath()
+            let mutablePath = CGMutablePath()
             let side: CGFloat = 120.0
             let height = side * sqrt(3) / 2
-            // Triângulo equilátero centrado
-            path.move(to: CGPoint(x: 0, y: height/2))
-            path.addLine(to: CGPoint(x: side/2, y: -height/2))
-            path.addLine(to: CGPoint(x: -side/2, y: -height/2))
-            path.closeSubpath()
-            
+            mutablePath.move(to: CGPoint(x: 0, y: height/2))
+            mutablePath.addLine(to: CGPoint(x: side/2, y: -height/2))
+            mutablePath.addLine(to: CGPoint(x: -side/2, y: -height/2))
+            mutablePath.closeSubpath()
+            path = mutablePath
             obstacle = SKShapeNode(path: path)
             body = SKPhysicsBody(polygonFrom: path)
             obstacle.position = CGPoint(x: frame.midX, y: frame.midY)
             
         case .hexagon:
-            let path = CGMutablePath()
+            let mutablePath = CGMutablePath()
             let radius: CGFloat = 70.0
             for i in 0..<6 {
                 let angle = CGFloat(i) * (2 * CGFloat.pi / 6)
                 let point = CGPoint(x: radius * cos(angle), y: radius * sin(angle))
-                if i == 0 { path.move(to: point) } else { path.addLine(to: point) }
+                if i == 0 { mutablePath.move(to: point) } else { mutablePath.addLine(to: point) }
             }
-            path.closeSubpath()
-            
+            mutablePath.closeSubpath()
+            path = mutablePath
             obstacle = SKShapeNode(path: path)
             body = SKPhysicsBody(polygonFrom: path)
             obstacle.position = CGPoint(x: frame.midX, y: frame.midY)
         }
         
-        // Configurações Comuns
+        // Configurações Comuns (Vibrante 2D)
         obstacle.name = GameConstants.UI.obstacleName
-        obstacle.fillColor = .orange
-        obstacle.strokeColor = .white
-        obstacle.lineWidth = 2
+        
+        let texture = createLinearGradientTexture(path: path, color: .orange, size: path.boundingBox.size)
+        obstacle.fillTexture = texture
+        obstacle.fillColor = .white
+        obstacle.strokeColor = .clear
+        obstacle.blendMode = .alpha
         
         body.isDynamic = false
         body.categoryBitMask = GameConstants.Physics.wallCategory
         body.contactTestBitMask = GameConstants.Physics.ballCategory
         body.collisionBitMask = GameConstants.Physics.ballCategory | GameConstants.Physics.wallCategory
-        
         body.friction = GameConstants.Physics.defaultFriction
         body.restitution = GameConstants.Physics.defaultRestitution
         
@@ -297,43 +360,31 @@ class PolyrhythmScene: SKScene {
     
     // MARK: - Touch Handling
     
-    /// Detecta o início de um toque para selecionar obstáculos ou pegar bolas.
     override func touchesBegan(_ touches: Set<UITouch>, with event: UIEvent?) {
         guard let touch = touches.first else { return }
         let location = touch.location(in: self)
         let touchedNodes = nodes(at: location)
         
-        // Prioridade 1: Obstáculos (Edição)
         if let obstacleNode = touchedNodes.first(where: { $0.name == GameConstants.UI.obstacleName }) {
             selectNode(obstacleNode, isBall: false)
             obstacleNode.physicsBody?.angularVelocity = 0
             
-        // Prioridade 2: Bolas (Interação Física)
         } else if let ballNode = touchedNodes.first(where: { $0.name == GameConstants.UI.ballName }) {
             selectNode(ballNode, isBall: true)
-            
-            // Preparar para arrasto físico
-            ballNode.physicsBody?.isDynamic = false // "Pegar na mão"
+            ballNode.physicsBody?.isDynamic = false
             ballNode.physicsBody?.velocity = .zero
-            
-            // Iniciar rastreamento para cálculo de arremesso
             lastTouchLocation = location
             lastTouchTime = touch.timestamp
             
         } else {
-            // Tocou no fundo -> Deselecionar se houver seleção anterior
             deselectCurrentNode()
         }
     }
     
-    /// Manipula o arrasto de objetos.
-    /// - Para obstáculos: Move e restringe às margens.
-    /// - Para bolas: Move livremente (ou restrito) e rastreia velocidade para lançamento.
     override func touchesMoved(_ touches: Set<UITouch>, with event: UIEvent?) {
         guard let touch = touches.first, let node = selectedNode else { return }
         let location = touch.location(in: self)
         
-        // Clamp de segurança (vale para ambos para não perder objetos fora da tela)
         let hMargin = GameConstants.UI.horizontalMargin
         let vMargin = GameConstants.UI.verticalDragMargin
         
@@ -344,81 +395,49 @@ class PolyrhythmScene: SKScene {
         
         let clampedX = min(max(location.x, minX), maxX)
         let clampedY = min(max(location.y, minY), maxY)
-        let newPosition = CGPoint(x: clampedX, y: clampedY)
         
-        node.position = newPosition
-        
-        // Se for bola, atualizamos o rastreamento para o arremesso
-        if node.name == GameConstants.UI.ballName {
-            // A velocidade instantânea será calculada no final, mas precisamos manter o último ponto válido
-            // Poderíamos fazer média móvel aqui, mas lastTouchLocation basta para flick simples.
-            // Atualizamos a cada move para ter o vetor do último frame
-            // Nota: Se movermos muito rápido, o touch pode pular.
-        }
+        node.position = CGPoint(x: clampedX, y: clampedY)
     }
     
-    /// Finaliza a interação.
-    /// - Para bolas: Calcula a velocidade de lançamento e reativa a física.
     override func touchesEnded(_ touches: Set<UITouch>, with event: UIEvent?) {
         guard let touch = touches.first, let node = selectedNode else { return }
         
         if node.name == GameConstants.UI.ballName {
-            // Lógica de Arremesso (Flick)
             let currentLocation = touch.location(in: self)
             let currentTime = touch.timestamp
-            
-            // Reativar física
             node.physicsBody?.isDynamic = true
             
             if let lastPos = lastTouchLocation, let lastTime = lastTouchTime {
                 let dt = currentTime - lastTime
-                
-                // Evitar divisão por zero ou dt muito grande (toque parado)
                 if dt > 0 && dt < 0.2 {
-                    // Calcular vetor velocidade: distancia / tempo
                     let dx = currentLocation.x - lastPos.x
                     let dy = currentLocation.y - lastPos.y
-                    
-                    // Fator de sensibilidade (ajuste fino para sensação de "força")
-                    let sensitivity: CGFloat = 1.0 // 1.0 é fisicamente "real" se dt for preciso em segundos
-                    // Como dt é pequeno, dx/dt gera velocidade em points/s.
-                    // SKPhysicsBody.velocity é points/s.
-                    
+                    let sensitivity: CGFloat = 1.0
                     let velocity = CGVector(dx: dx / CGFloat(dt) * sensitivity, dy: dy / CGFloat(dt) * sensitivity)
                     
-                    // Aplicar velocidade (com limite máximo para evitar explosão física)
                     let maxVelocity: CGFloat = 2000.0
                     let clampedDx = min(max(velocity.dx, -maxVelocity), maxVelocity)
                     let clampedDy = min(max(velocity.dy, -maxVelocity), maxVelocity)
                     
                     node.physicsBody?.velocity = CGVector(dx: clampedDx, dy: clampedDy)
                 } else {
-                    // Se segurou muito tempo parado, solta com velocidade zero
                     node.physicsBody?.velocity = .zero
                 }
             }
-            
-            // Limpar seleção de bola (não queremos editar bolas via UI de gestos depois de jogar)
             deselectCurrentNode()
             lastTouchLocation = nil
             lastTouchTime = nil
         }
-        
-        // Para obstáculos, mantemos selecionado (comportamento original)
     }
     
     // MARK: - Helpers de Seleção
     
     private func selectNode(_ node: SKNode, isBall: Bool) {
-        // Se já havia outro selecionado, restaura
         if let prev = selectedNode, prev != node {
             restoreNodeVisuals(prev)
         }
-        
         selectedNode = node
-        
-        // Feedback visual (Apenas Alpha para preservar escala do usuário)
-        let fade = SKAction.fadeAlpha(to: 0.6, duration: 0.1) // Mais transparente para indicar "em edição" ou "segurando"
+        let fade = SKAction.fadeAlpha(to: 0.6, duration: 0.1)
         node.run(fade)
     }
     
@@ -429,30 +448,25 @@ class PolyrhythmScene: SKScene {
     }
     
     private func restoreNodeVisuals(_ node: SKNode) {
-        // Restaurar visual original
         let fadeBack = SKAction.fadeAlpha(to: 1.0, duration: 0.1)
         node.run(fadeBack)
     }
     
     // MARK: - Feedback Visual
     
-    /// Aciona um flash visual no nó (brilho branco rápido).
     private func triggerVisualFeedback(_ node: SKNode) {
         guard let shapeNode = node as? SKShapeNode else { return }
         
-        // Determinar cor original baseada no tipo, para evitar bug de capturar "branco" durante flashes repetidos
         let targetColor: UIColor
         if node.name == GameConstants.UI.ballName {
             targetColor = .cyan
         } else if node.name == GameConstants.UI.obstacleName {
             targetColor = .orange
         } else {
-            targetColor = shapeNode.fillColor // Fallback
+            targetColor = shapeNode.fillColor
         }
         
-        // Remove ações anteriores de flash para evitar conflito de cores
         shapeNode.removeAction(forKey: "flash")
-        
         shapeNode.fillColor = .white
         
         let wait = SKAction.wait(forDuration: 0.05)
@@ -509,7 +523,6 @@ extension PolyrhythmScene: SKPhysicsContactDelegate {
     }
     
     private func playBallCollisionSound() {
-        // Usa a mesma escala para harmonia, mas com o timbre percussivo específico
         let randomNote = GameConstants.Audio.pentatonicScale.randomElement() ?? 440.0
         audioService.playBallCollision(frequency: randomNote)
     }
