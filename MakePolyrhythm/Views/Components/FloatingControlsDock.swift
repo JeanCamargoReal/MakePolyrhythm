@@ -1,7 +1,19 @@
 import SwiftUI
 
+/// Painel flutuante inferior contendo os controles principais da simulação.
+///
+/// Agrupa botões para:
+/// - Criação de entidades (Bolas, Obstáculos).
+/// - Controle de fluxo (Play/Pause).
+/// - Ações destrutivas (Limpar).
+///
+/// O painel utiliza um estilo visual translúcido ("Glassy") para se integrar à cena sem obstruir a visão.
 struct FloatingControlsDock: View {
+    
+    /// ViewModel para executar as ações de lógica de negócio.
     var viewModel: SimulationViewModel
+    
+    /// Callback acionado em qualquer interação, utilizado para resetar timers de inatividade na View pai.
     var onInteraction: () -> Void
     
     var body: some View {

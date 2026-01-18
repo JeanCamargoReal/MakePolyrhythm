@@ -2,14 +2,13 @@ import SwiftUI
 import SpriteKit
 import Observation
 
-/// ViewModel responsável pela lógica de apresentação e controle da simulação física.
+/// ViewModel responsável pela lógica de apresentação e controle da simulação física 2D.
 ///
-/// Atua como uma ponte entre a interface do usuário (SwiftUI) e a cena do SpriteKit (`PolyrhythmScene`).
-/// Suas principais responsabilidades incluem:
-/// - Gerenciar a instância da cena.
-/// - Controlar o estado global da simulação (pausa/play).
-/// - Receber e processar gestos da UI (escala e rotação) e aplicá-los aos objetos selecionados na cena.
-/// - Expor comandos de ação (adicionar bola/obstáculo, limpar cena) para a View.
+/// Atua como uma ponte (Bridge) entre a interface SwiftUI e a cena SpriteKit.
+/// Gerencia:
+/// - O estado global da simulação (Pausa/Play).
+/// - A seleção de objetos e edição de suas propriedades (Notas).
+/// - A tradução de comandos da UI para ações na Cena.
 @Observable
 class SimulationViewModel {
     
@@ -23,8 +22,13 @@ class SimulationViewModel {
         }
     }
     
-    // Estado de Seleção e Edição de Notas
+    // MARK: - Estado de Seleção
+    
+    /// Indica se há um objeto (obstáculo) selecionado na cena para edição.
     var isObjectSelected: Bool = false
+    
+    /// Índice da nota musical configurada para o objeto selecionado.
+    /// Ao ser alterado via UI, atualiza imediatamente a propriedade na cena.
     var selectedNoteIndex: Int = 0 {
         didSet {
             if isObjectSelected {
@@ -33,15 +37,11 @@ class SimulationViewModel {
         }
     }
     
-    // MARK: - Estado Interno de Gestos
-    
-    /// Armazena o último fator de escala aplicado durante um gesto de pinça, para cálculo incremental.
+    // Variáveis internas para cálculo incremental de gestos
     private var lastScale: CGFloat = 1.0
-    
-    /// Armazena o último ângulo de rotação aplicado durante um gesto, para cálculo incremental.
     private var lastRotation: Angle = .zero
     
-    /// Inicializa o ViewModel e configura a cena com suas dependências.
+    /// Inicializa o ViewModel, cria a cena e configura os callbacks de interação.
     @MainActor
     init() {
         // Inicializa a cena com injeção de dependência do serviço de áudio
@@ -106,6 +106,10 @@ class SimulationViewModel {
     
     func addHexagon() {
         scene.addObstacle(shape: .hexagon)
+    }
+    
+    func addDiamond() {
+        scene.addObstacle(shape: .diamond)
     }
     
     func clearBalls() {

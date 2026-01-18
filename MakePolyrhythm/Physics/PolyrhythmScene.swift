@@ -6,19 +6,22 @@ import SwiftUI
 /// Constantes globais de configuração do jogo, física e interface.
 enum GameConstants {
     
-    /// Configurações de Física
+    /// Configurações de Física e Máscaras de Colisão.
     enum Physics {
+        /// Categoria para Bolas (Dinâmicas).
         static let ballCategory: UInt32 = 0b1
+        /// Categoria para Paredes/Obstáculos (Estáticos).
         static let wallCategory: UInt32 = 0b10
+        
         static let ballRadius: CGFloat = 20.0
         /// Restituição 1.0 garante colisões perfeitamente elásticas (sem perda de energia).
         static let defaultRestitution: CGFloat = 1.0
         static let defaultFriction: CGFloat = 0.0
     }
     
-    /// Configurações de Áudio
+    /// Configurações de Áudio e Música.
     enum Audio {
-        /// Escala Harmônica (Lídio) para sons etéreos e polifônicos.
+        /// Escala Harmônica (Lídio) estendida para sons etéreos e polifonia rica.
         static let harmonicScale: [Float] = [
             261.63, 293.66, 329.63, 369.99, 392.00, 440.00, 493.88, // Oitava 4
             523.25, 587.33, 659.25, 739.99, 783.99, 880.00, 987.77  // Oitava 5
@@ -26,42 +29,43 @@ enum GameConstants {
         static let defaultNoteDuration: Double = 0.1
     }
     
-    /// Configurações de Interface e Limites
+    /// Configurações de Interface e Limites de Segurança.
     enum UI {
         static let obstacleName = "obstacle"
         static let ballName = "ball"
-        // Margens de segurança para impedir objetos sob Dynamic Island ou Home Indicator
+        // Margens para impedir que objetos fiquem sob a Dynamic Island ou Home Indicator
         static let topSafeArea: CGFloat = 50.0
-        static let bottomSafeArea: CGFloat = 150.0 // Maior por causa dos controles flutuantes
+        static let bottomSafeArea: CGFloat = 150.0
         static let horizontalMargin: CGFloat = 20.0
-        static let verticalDragMargin: CGFloat = 50.0 // Margem vertical para o arrasto de objetos
+        static let verticalDragMargin: CGFloat = 50.0
     }
 }
 
 // MARK: - Scene
 
-/// Cena principal do SpriteKit responsável pela simulação polirrítmica.
+/// Cena principal do SpriteKit onde ocorre a simulação polirrítmica.
 ///
-/// Implementa a lógica de:
-/// - **Física**: Ambiente de gravidade zero com colisões elásticas.
-/// - **Interatividade**: Seleção, arrasto (Drag), redimensionamento e rotação de objetos.
-/// - **Áudio**: Disparo de sons sintetizados baseados em eventos de colisão (Bola x Parede, Bola x Bola).
+/// Esta classe é responsável por:
+/// 1.  **Física:** Configurar o mundo (gravidade zero), bordas e corpos físicos.
+/// 2.  **Entidades:** Gerenciar a criação de bolas e obstáculos com texturas procedurais vibrantes.
+/// 3.  **Interação:** Lidar com toques (seleção, arrasto, lançamento) e gestos.
+/// 4.  **Áudio/Visual:** Disparar sons e feedbacks visuais (flash, pulso) baseados em colisões.
 class PolyrhythmScene: SKScene {
     
     // Dependências (Injeção)
     private let audioService: AudioServiceProtocol
     
-    // Estado interno
+    // Estado interno da Cena
     private var selectedNode: SKNode?
     
-    // Callback para UI
+    /// Callback acionado quando um objeto é selecionado, passando o índice da sua nota (ou nil).
     var onObjectSelected: ((Int?) -> Void)?
     
-    // Estado de arrasto para cálculo de velocidade (Flick/Throw)
+    // Variáveis para cálculo de velocidade de lançamento (Flick)
     private var lastTouchLocation: CGPoint?
     private var lastTouchTime: TimeInterval?
     
-    /// Controla o estado de pausa da simulação física.
+    /// Controla o estado de pausa da simulação física (congela o tempo).
     var isPausedSimulation: Bool = false {
         didSet {
             self.isPaused = isPausedSimulation
@@ -148,21 +152,22 @@ class PolyrhythmScene: SKScene {
         case rectangle
         case triangle
         case hexagon
-        case diamond // Novo formato
+        case diamond
     }
 
     // MARK: - Gestão de Entidades
     
+    /// Adiciona uma nova bola à cena com textura de gradiente radial e física dinâmica.
     func addBall() {
         let ball = SKShapeNode(circleOfRadius: GameConstants.Physics.ballRadius)
         ball.name = GameConstants.UI.ballName
         
-        // Estilo Vibrante 2D (Gradiente Radial)
+        // Estilo Vibrante 2D: Gera textura em tempo real
         let texture = createRadialGradientTexture(color: .cyan, radius: GameConstants.Physics.ballRadius)
         ball.fillTexture = texture
-        ball.fillColor = .white // Necessário ser branco para mostrar a textura original
-        ball.strokeColor = .clear // A textura já contém a borda
-        ball.blendMode = .alpha // Blend mode normal
+        ball.fillColor = .white // Base branca para não tingir a textura
+        ball.strokeColor = .clear
+        ball.blendMode = .alpha
         
         ball.position = CGPoint(x: frame.midX, y: frame.midY)
         
@@ -181,7 +186,7 @@ class PolyrhythmScene: SKScene {
         ball.physicsBody = body
         addChild(ball)
         
-        // Adicionar rastro
+        // Adiciona rastro de partículas
         let trail = createTrail(color: .cyan)
         trail.targetNode = self
         ball.addChild(trail)
@@ -191,6 +196,7 @@ class PolyrhythmScene: SKScene {
         body.velocity = CGVector(dx: randomDx, dy: randomDy)
     }
     
+    /// Cria um sistema de partículas (rastro) suave estilo "bolhas".
     private func createTrail(color: UIColor) -> SKEmitterNode {
         let emitter = SKEmitterNode()
         
@@ -256,7 +262,7 @@ class PolyrhythmScene: SKScene {
         return SKTexture(image: image)
     }
     
-    /// Gera uma textura de gradiente linear para obstáculos.
+    /// Gera uma textura de gradiente linear para obstáculos (Retângulo/Hexágono).
     private func createLinearGradientTexture(path: CGPath, color: UIColor, size: CGSize) -> SKTexture {
         let renderer = UIGraphicsImageRenderer(size: size)
         
@@ -270,7 +276,7 @@ class PolyrhythmScene: SKScene {
             ctx.addPath(path)
             ctx.clip()
             
-            // Gradiente Linear Diagonal: Topo-Esq (Claro) -> Base-Dir (Escuro)
+            // Gradiente Linear Diagonal
             let colors = [UIColor.white.withAlphaComponent(0.4).cgColor, color.cgColor] as CFArray
             
             if let gradient = CGGradient(colorsSpace: CGColorSpaceCreateDeviceRGB(), colors: colors, locations: [0.0, 1.0]) {
@@ -283,7 +289,7 @@ class PolyrhythmScene: SKScene {
         return SKTexture(image: image)
     }
     
-    /// Gera uma textura de gradiente vertical para triângulos (Topo Claro -> Base Escura).
+    /// Gera uma textura de gradiente vertical para triângulos.
     private func createVerticalGradientTexture(path: CGPath, color: UIColor, size: CGSize) -> SKTexture {
         let renderer = UIGraphicsImageRenderer(size: size)
         
@@ -293,7 +299,6 @@ class PolyrhythmScene: SKScene {
             
             ctx.translateBy(x: -pathBounds.minX, y: -pathBounds.minY)
             
-            // Clipar pelo path
             ctx.addPath(path)
             ctx.clip()
             
@@ -301,13 +306,6 @@ class PolyrhythmScene: SKScene {
             let colors = [UIColor.white.withAlphaComponent(0.6).cgColor, color.cgColor] as CFArray
             
             if let gradient = CGGradient(colorsSpace: CGColorSpaceCreateDeviceRGB(), colors: colors, locations: [0.0, 1.0]) {
-                // Do topo (maxY no sistema de coordenadas flipado do CGContext? Não, UIGraphicsImageRenderer é coordinates padrão UIKit: Topo=0, Base=Height)
-                // pathBounds em SpriteKit tem Y para cima. Em UIKit Y é para baixo.
-                // Mas aqui estamos desenhando no contexto do renderer.
-                // Se o path vem do SpriteKit (centrado em 0), ele tem coordenadas negativas.
-                // Ao transladar, ele fica entre 0 e size.height.
-                // Em UIKit, 0 é topo.
-                // Queremos topo claro.
                 let start = CGPoint(x: pathBounds.midX, y: 0) // Topo da imagem
                 let end = CGPoint(x: pathBounds.midX, y: size.height) // Base da imagem
                 ctx.drawLinearGradient(gradient, start: start, end: end, options: [])
@@ -317,7 +315,7 @@ class PolyrhythmScene: SKScene {
         return SKTexture(image: image)
     }
     
-    /// Gera uma textura de gradiente radial para polígonos (para dar volume ao losango).
+    /// Gera uma textura de gradiente radial para polígonos (Diamond).
     private func createRadialGradientTextureForPolygon(path: CGPath, color: UIColor, size: CGSize) -> SKTexture {
         let renderer = UIGraphicsImageRenderer(size: size)
         
@@ -329,11 +327,10 @@ class PolyrhythmScene: SKScene {
             
             ctx.translateBy(x: -pathBounds.minX, y: -pathBounds.minY)
             
-            // Clipar pelo path
             ctx.addPath(path)
             ctx.clip()
             
-            // Gradiente Radial: Centro (Cor Clara) -> Borda (Cor Base Saturada)
+            // Gradiente Radial
             let colors = [UIColor.white.withAlphaComponent(0.6).cgColor, color.cgColor] as CFArray
             let locations: [CGFloat] = [0.0, 1.0]
             
@@ -345,6 +342,7 @@ class PolyrhythmScene: SKScene {
         return SKTexture(image: image)
     }
     
+    /// Adiciona um obstáculo à cena com a forma especificada (Retângulo, Triângulo, Hexágono, Losango).
     func addObstacle(shape: ObstacleShape = .rectangle) {
         let obstacle: SKShapeNode
         let body: SKPhysicsBody

@@ -1,9 +1,20 @@
 import SwiftUI
 
+/// Um botão circular estilizado com efeito de vidro fosco e animação de toque elástica.
+///
+/// Utilizado para ações principais na interface do usuário, mantendo uma estética leve e moderna.
 struct GlassyButton: View {
+    
+    /// Nome do ícone do sistema (SF Symbol) a ser exibido.
     let icon: String
+    
+    /// Texto descritivo para acessibilidade (VoiceOver).
     let label: String
+    
+    /// Cor de destaque do ícone. Padrão é `.primary`.
     var color: Color = .primary
+    
+    /// Ação a ser executada quando o botão é pressionado.
     let action: () -> Void
     
     var body: some View {
@@ -20,6 +31,7 @@ struct GlassyButton: View {
     }
 }
 
+/// Estilo de botão personalizado que aplica uma animação de escala ("bounce") e opacidade ao ser pressionado.
 struct BouncyButtonStyle: ButtonStyle {
     func makeBody(configuration: Configuration) -> some View {
         configuration.label

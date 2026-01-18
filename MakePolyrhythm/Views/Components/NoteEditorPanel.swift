@@ -1,6 +1,12 @@
 import SwiftUI
 
+/// Painel contextual para edição da nota musical de um obstáculo selecionado.
+///
+/// Exibe um controle do tipo `Stepper` que permite ao usuário ciclar entre as notas disponíveis na escala harmônica do jogo.
+/// Aparece apenas quando um objeto editável está selecionado na cena.
 struct NoteEditorPanel: View {
+    
+    /// Binding para o índice da nota selecionada no ViewModel.
     @Binding var selectedNoteIndex: Int
     
     var body: some View {
