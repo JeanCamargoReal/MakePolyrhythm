@@ -27,11 +27,11 @@ final class SynthEngine: AudioServiceProtocol {
         
         // Configurar Efeitos
         reverbNode.loadFactoryPreset(.cathedral)
-        reverbNode.wetDryMix = 40 // 40% Reverb
+        reverbNode.wetDryMix = 20 // 40% Reverb
         
-        delayNode.delayTime = 0.25 // Eco rítmico
-        delayNode.feedback = 30
-        delayNode.lowPassCutoff = 15000
+        delayNode.delayTime = 0.15 // Eco rítmico
+        delayNode.feedback = 20
+        delayNode.lowPassCutoff = 7500
         delayNode.wetDryMix = 20
         
         // Conexões: Player -> Delay -> Reverb -> Mixer -> Saída
