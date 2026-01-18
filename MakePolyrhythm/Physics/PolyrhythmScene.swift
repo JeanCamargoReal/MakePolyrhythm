@@ -289,7 +289,7 @@ class PolyrhythmScene: SKScene {
         return SKTexture(image: image)
     }
     
-    /// Gera uma textura de gradiente vertical para triângulos.
+    /// Gera uma textura de gradiente vertical para triângulos (Topo Claro -> Base Escura).
     private func createVerticalGradientTexture(path: CGPath, color: UIColor, size: CGSize) -> SKTexture {
         let renderer = UIGraphicsImageRenderer(size: size)
         
@@ -302,12 +302,16 @@ class PolyrhythmScene: SKScene {
             ctx.addPath(path)
             ctx.clip()
             
-            // Gradiente Linear Vertical: Topo (Claro) -> Base (Cor Sólida)
-            let colors = [UIColor.white.withAlphaComponent(0.6).cgColor, color.cgColor] as CFArray
+            // Gradiente Linear Vertical: Base (Cor Sólida) -> Topo (Cor Mais Clara)
+            let startColor = color.cgColor // Começa com a cor base
+            let endColor = UIColor.white.withAlphaComponent(0.6).cgColor // Termina mais claro
             
-            if let gradient = CGGradient(colorsSpace: CGColorSpaceCreateDeviceRGB(), colors: colors, locations: [0.0, 1.0]) {
-                let start = CGPoint(x: pathBounds.midX, y: 0) // Topo da imagem
-                let end = CGPoint(x: pathBounds.midX, y: size.height) // Base da imagem
+            let colors = [startColor, endColor] as CFArray
+            let locations: [CGFloat] = [0.0, 1.0]
+            
+            if let gradient = CGGradient(colorsSpace: CGColorSpaceCreateDeviceRGB(), colors: colors, locations: locations) {
+                let start = CGPoint(x: pathBounds.midX, y: size.height) // Base da imagem
+                let end = CGPoint(x: pathBounds.midX, y: 0) // Topo da imagem
                 ctx.drawLinearGradient(gradient, start: start, end: end, options: [])
             }
         }
@@ -414,18 +418,21 @@ class PolyrhythmScene: SKScene {
         // Configurações Comuns (Vibrante 2D)
         obstacle.name = GameConstants.UI.obstacleName
         
-        let texture: SKTexture
         if shape == .triangle {
-            texture = createVerticalGradientTexture(path: path, color: .orange, size: path.boundingBox.size)
-        } else if shape == .rectangle || shape == .hexagon {
-            texture = createLinearGradientTexture(path: path, color: .orange, size: path.boundingBox.size)
-        } else { // Diamond (Radial ou Linear? Vamos de Radial ajustado ou Linear)
-            // Diamond fica bem com Radial se for bem feito, ou linear vertical. Vamos usar Radial existente para variar.
-            texture = createRadialGradientTextureForPolygon(path: path, color: .orange, size: path.boundingBox.size)
+            // Triângulo: Cor sólida para evitar artefatos de gradiente (triângulo invertido)
+            obstacle.fillTexture = nil
+            obstacle.fillColor = .orange
+        } else {
+            let texture: SKTexture
+            if shape == .rectangle || shape == .hexagon {
+                texture = createLinearGradientTexture(path: path, color: .orange, size: path.boundingBox.size)
+            } else { // Diamond
+                texture = createRadialGradientTextureForPolygon(path: path, color: .orange, size: path.boundingBox.size)
+            }
+            obstacle.fillTexture = texture
+            obstacle.fillColor = .white
         }
         
-        obstacle.fillTexture = texture
-        obstacle.fillColor = .white
         obstacle.strokeColor = .white // Borda uniforme vetorial
         obstacle.lineWidth = 2.0
         obstacle.blendMode = .alpha
